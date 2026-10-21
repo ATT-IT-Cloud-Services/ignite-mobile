@@ -168,7 +168,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
       - run: bun install --frozen-lockfile
       - run: bun run build
       - run: bunx cap sync android
@@ -201,7 +201,7 @@ jobs:
           path: release-input
 
       - name: Prepare release assets
-        run: bash scripts/prepare-release-assets.sh release-input release-upload
+        run: bash scripts/prepare-release-assets.sh release-input "$GITHUB_WORKSPACE/release-upload"
 
       - name: Resolve version
         id: meta

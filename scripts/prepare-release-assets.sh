@@ -11,6 +11,7 @@ DESKTOP_PREFIX="ignite-desktop-${VERSION}"
 MOBILE_PREFIX="ignite-mobile-${VERSION}"
 
 mkdir -p "$OUT"
+OUT="$(cd "$OUT" && pwd)"
 
 stage_file() {
   local label="$1"
