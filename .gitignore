@@ -2,7 +2,7 @@
 node_modules
 
 # Local copy of public-api/typescript (synced by scripts/sync-ignite-api-client.mjs).
-# The ignite-mobile GitLab mirror force-adds this tree so the app builds alone.
+# The ignite-mobile GitHub mirror force-adds this tree so the app builds alone.
 vendor/ignite-api-client
 
 release

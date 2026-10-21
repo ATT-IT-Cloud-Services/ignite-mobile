@@ -10,7 +10,7 @@ Machine-facing SDK — no localized error messages. API failures throw `ApiError
 npm install @ignite/api-client
 ```
 
-Standalone GitLab-Projekt: [`api-client-typescript`](https://git.zyneonstudios.com/elizon/api-client-typescript).
+Standalone GitHub repository: [`api-client-typescript`](https://github.com/ATT-IT-Cloud-Services/api-client-typescript).
 
 Requires Node.js 18+ (native `fetch`) or any environment with a `fetch` polyfill.
 

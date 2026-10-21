@@ -7,9 +7,9 @@ Official **Ignite** client for web, desktop (Electron), and Android (Capacitor).
 | Context | Location |
 |---|---|
 | Development (monorepo) | `ignite-2` → `mobile/ignite/` |
-| Mirror (standalone) | [`elizon/ignite-mobile`](https://git.zyneonstudios.com/elizon/ignite-mobile) |
+| Mirror (standalone) | [`ATT-IT-Cloud-Services/ignite-mobile`](https://github.com/ATT-IT-Cloud-Services/ignite-mobile) |
 
-Changes are made in the monorepo and mirrored to `ignite-mobile` via GitLab job **mirror:mobile**. CI artifacts (installers, APK) and releases are produced in the mirror project under **CI/CD → Pipelines** / **Deploy → Releases**.
+Changes are made in the monorepo and mirrored to `ignite-mobile` via the GitHub Actions job **mirror-mobile**. CI artifacts (installers, APK) and releases are produced in the mirror repository under **Actions** / **Releases**.
 
 ## Stack
 
@@ -72,10 +72,10 @@ Before each desktop build, `build/icon.png` is generated from `public/favicon.ic
 
 ### Auto-Updates
 
-Packaged desktop builds check [GitLab Releases](https://git.zyneonstudios.com/elizon/ignite-mobile/-/releases) for newer versions via `electron-updater`:
+Packaged desktop builds check [GitHub Releases](https://github.com/ATT-IT-Cloud-Services/ignite-mobile/releases) for newer versions via `electron-updater`:
 
 - **Automatic check** ~5 seconds after startup (Windows NSIS installer, Linux AppImage)
-- **macOS:** only notifies about a new version and opens the GitLab release — manual install via DMG
+- **macOS:** only notifies about a new version and opens the GitHub release — manual install via DMG
 - **Manual check** in **Einstellungen → Über → Nach Updates suchen**
 - **Not supported:** Windows portable build (`PORTABLE_EXECUTABLE_DIR`)
 
@@ -118,8 +118,8 @@ The displayed version combines semver from `package.json` with the git commit:
 ```
 
 - Semver: `"version"` in `package.json`
-- Buildnummer: `CI_PIPELINE_IID` (GitLab)
-- Commit: `CI_COMMIT_SHA` in GitLab CI or `git rev-parse --short=7 HEAD` locally
+- Buildnummer: `GITHUB_RUN_NUMBER`
+- Commit: `GITHUB_SHA` in GitHub Actions or `git rev-parse --short=7 HEAD` locally
 - Optional override: `APP_VERSION` in `.env` (semver part only)
 
 Build-time injection happens in `build.ts` → `process.env.APP_VERSION` in `src/lib/config.ts`.
@@ -133,14 +133,14 @@ src/lib/             API client, config, platform helpers
 electron/            Electron main/preload/static server
 android/             Capacitor Android project
 public/              Static assets (logos, icons)
-scripts/             Build helpers (icons, version, GitLab release)
-.gitlab-ci.yml       Standalone CI (build + package + release)
+scripts/             Build helpers (icons, version, release assets)
+.github/workflows/   Standalone CI (build + package + release)
 build.ts             Bun bundle (dist/)
 ```
 
-## CI (GitLab)
+## CI (GitHub Actions)
 
-Pipeline in the standalone project (`elizon/ignite-mobile`), triggered after monorepo **mirror:mobile**:
+Workflow in the standalone repository (`ATT-IT-Cloud-Services/ignite-mobile`), triggered after the monorepo **mirror-mobile** job:
 
 | Job | Artifact |
 |---|---|
@@ -149,27 +149,27 @@ Pipeline in the standalone project (`elizon/ignite-mobile`), triggered after mon
 | desktop-windows | NSIS installer + portable `.exe` + MSIX |
 | desktop-macos | `release/*.dmg` |
 | android | Debug APK |
-| release | GitLab Release (default branch only) |
+| release | GitHub Release (default branch only) |
 
-Job artifacts are available under the pipeline run.
+Job artifacts are available under the workflow run.
 
-Windows/macOS-Jobs laufen nur, wenn die CI-Variablen `MOBILE_ENABLE_WINDOWS=true` bzw. `MOBILE_ENABLE_MACOS=true` gesetzt sind und passende Runner existieren (`MOBILE_RUNNER_WINDOWS` / `MOBILE_RUNNER_MACOS`). Ohne diese Runner blockiert der Release-Job nicht.
+Windows/macOS-Jobs laufen nur, wenn die Repository-Variablen `MOBILE_ENABLE_WINDOWS=true` bzw. `MOBILE_ENABLE_MACOS=true` gesetzt sind. Ohne diese Variablen werden die Jobs übersprungen.
 
-### GitLab Releases
+### GitHub Releases
 
-Auf jedem Push auf den Default-Branch erzeugt GitLab ein [Release](https://git.zyneonstudios.com/elizon/ignite-mobile/-/releases) über die Jobs `release:meta` und `release`. Die Jobs warten **nicht** auf Desktop- oder Android-Builds.
+Auf jedem Push auf den Default-Branch erzeugt GitHub Actions ein [Release](https://github.com/ATT-IT-Cloud-Services/ignite-mobile/releases) über den Job `release`. Der Job veröffentlicht alle vorhandenen Paket-Artefakte.
 
 - Tag: `v{Versionscode}-{Build}` (z. B. `v1.0.4-42`)
 - Titel: `ignite-mobile {Versionscode} (build {Build})`
-- Buildnummer: `CI_PIPELINE_IID`
+- Buildnummer: `GITHUB_RUN_NUMBER`
 
-Merge-Request-Pipelines veröffentlichen keine Releases.
+Pull-Request-Workflows veröffentlichen keine Releases.
 
 ## Monorepo development
 
 In the `ignite-2` monorepo, the client is **mirror-standalone**: imports must not point at monorepo `packages/` or `apps/`. Shared files live under `src/api/` and `src/shared/`.
 
-After changes under `mobile/ignite/**`, push to the default branch; GitLab **mirror:mobile** updates `elizon/ignite-mobile` automatically.
+After changes under `mobile/ignite/**`, push to the default branch; the GitHub Actions job **mirror-mobile** updates `ATT-IT-Cloud-Services/ignite-mobile` automatically.
 
 ## License
 
