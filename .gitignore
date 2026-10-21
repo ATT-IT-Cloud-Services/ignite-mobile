@@ -1,0 +1,48 @@
+# dependencies (bun install)
+node_modules
+
+# Local copy of public-api/typescript (synced by scripts/sync-ignite-api-client.mjs).
+# The ignite-mobile GitLab mirror force-adds this tree so the app builds alone.
+vendor/ignite-api-client
+
+release
+dist-test
+build/icon.png
+build/appx/
+public/apple-touch-icon.png
+android/app/src/main/res/mipmap-*/ic_launcher*.png
+ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+
+# output
+out
+dist
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# bun.lock must stay tracked for reproducible CI (Xcode Cloud + GitHub Actions)
+
+# logs
+logs
+_.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store

@@ -1,0 +1,299 @@
+import { Badge } from "../ui/badge";
+import { Progress } from "../ui/progress";
+import { useI18n } from "../../i18n";
+import { cn } from "../../lib/utils";
+import type { DashboardServer, ServerStatus } from "../../lib/types";
+import { IconChevronRight, IconGlobe, IconMapPin } from "./dashboard-icons";
+
+const dotClass: Record<ServerStatus, string> = {
+  online: "bg-(--success)",
+  offline: "bg-(--error)",
+  starting: "bg-(--warning) animate-pulse",
+  stopping: "bg-(--warning) animate-pulse",
+};
+
+const statusBadgeVariant: Record<ServerStatus, "success" | "danger" | "warning"> = {
+  online: "success",
+  offline: "danger",
+  starting: "warning",
+  stopping: "warning",
+};
+
+export function ServiceCard({
+  server,
+  onOpen,
+  maintenance,
+}: {
+  server: DashboardServer;
+  onOpen: (id: string) => void;
+  maintenance?: boolean;
+}) {
+  const { t } = useI18n();
+  const provider = (server.providerType || "").toUpperCase();
+  const isDomain =
+    Boolean(server.isDomainService) ||
+    provider === "DOMAIN" ||
+    String(server.name || "")
+      .toLowerCase()
+      .startsWith("domain ");
+  const isPloi = provider === "PLOI";
+  const isPlesk = provider === "PLESK";
+  const isMailcow = provider === "MAILCOW";
+  const domainName =
+    (typeof server.domainName === "string" && server.domainName.trim()) ||
+    (isDomain && typeof server.name === "string"
+      ? server.name.replace(/^domain\s+/i, "").trim()
+      : "") ||
+    "";
+  const displayIp = isDomain
+    ? domainName || "—"
+    : isPloi
+      ? server.ploiStats?.domain || server.providerAddress || server.ip
+      : isPlesk || isMailcow
+        ? server.providerAddress || server.ip
+        : server.ip;
+  const mailcowDomainUsed = server.mailcowStats?.usedDomains ?? 0;
+  const mailcowDomainMax = server.mailcowStats?.maxDomains ?? 0;
+  const mailcowDomainPct =
+    mailcowDomainMax > 0 ? Math.min(100, Math.round((mailcowDomainUsed / mailcowDomainMax) * 100)) : 0;
+  const mailcowMailboxUsed = server.mailcowStats?.usedMailboxes ?? 0;
+  const mailcowMailboxMax =
+    mailcowDomainMax > 0 && (server.mailcowStats?.maxMailboxesPerDomain ?? 0) > 0
+      ? mailcowDomainMax * (server.mailcowStats?.maxMailboxesPerDomain ?? 0)
+      : 0;
+  const mailcowMailboxPct =
+    mailcowMailboxMax > 0
+      ? Math.min(100, Math.round((mailcowMailboxUsed / mailcowMailboxMax) * 100))
+      : 0;
+  const ramPct = server.ram.total > 0 ? Math.round((server.ram.used / server.ram.total) * 100) : 0;
+  const diskPct = server.disk.total > 0 ? Math.round((server.disk.used / server.disk.total) * 100) : 0;
+  const cpuPct = Math.min(100, Math.max(0, +server.cpu.used.toFixed(1)));
+  const capacityUnit = provider === "PROXMOX" ? "GiB" : "GB";
+  const ramLabel = server.ram.total > 0 ? `${server.ram.used.toFixed(1)} / ${server.ram.total.toFixed(1)} ${capacityUnit}` : "—";
+  const diskLabel = server.disk.total > 0
+    ? server.disk.used > 0 ? `${server.disk.used.toFixed(1)} / ${server.disk.total.toFixed(1)} ${capacityUnit}` : `${server.disk.total.toFixed(1)} ${capacityUnit}`
+    : "—";
+  const storageStatus = server.ploiStats?.storageStatus ?? "unknown";
+  const storageTone =
+    storageStatus === "exceeded" ? "danger" : storageStatus === "warning" ? "warning" : "success";
+
+  const pleskDomains = `${server.pleskStats?.usedDomains ?? 0} / ${server.pleskStats?.maxDomains || "—"}`;
+  const pleskStorage = `${(server.pleskStats?.avgStorageUsedGb ?? 0).toFixed(1)} / ${server.pleskStats?.storagePerDomainGb || "—"} GB`;
+  const pleskMailOn = (server.pleskStats?.maxMailboxesPerDomain ?? -1) >= 0;
+  const pleskStoragePct =
+    (server.pleskStats?.storagePerDomainGb ?? 0) > 0
+      ? Math.min(
+          100,
+          Math.round(
+            ((server.pleskStats?.avgStorageUsedGb ?? 0) / (server.pleskStats?.storagePerDomainGb ?? 1)) * 100
+          )
+        )
+      : 0;
+
+  const statusLabel: Record<ServerStatus, string> = {
+    online: t("serverOnline"),
+    offline: t("serverOffline"),
+    starting: t("serverStarting"),
+    stopping: t("serverStopping"),
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(server.id)}
+      className="glass glass-hover w-full p-4 text-left active:scale-[0.99]"
+      aria-label={`Open ${server.name}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "h-2 w-2 rounded-full",
+                isMailcow ? "bg-primary" : dotClass[server.status],
+              )}
+              aria-hidden
+            />
+            <span className="truncate text-sm font-semibold text-(--text-primary)">{server.name}</span>
+            {server.isShared && <Badge variant="outline">{t("serverShared")}</Badge>}
+            {server.suspendedAt && <Badge variant="danger">{t("serverSuspended")}</Badge>}
+            {server.terminationPending && <Badge variant="warning">{t("serviceDeleting")}</Badge>}
+            {server.reinstallPending && <Badge variant="warning">{t("serverReinstallPending")}</Badge>}
+            {maintenance && <Badge variant="warning">{t("serverMaintenance")}</Badge>}
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-(--text-muted)">
+            {isDomain ? (
+              <span className="inline-flex items-center gap-1">
+                <IconGlobe className="h-4 w-4 shrink-0" /> {displayIp}
+              </span>
+            ) : (
+              <>
+                <span className="inline-flex items-center gap-1">
+                  <IconMapPin className="h-4 w-4 shrink-0" />{" "}
+                  {isPlesk
+                    ? server.pleskStats?.locationLabel || server.location
+                    : isPloi
+                      ? server.ploiStats?.locationLabel || server.location
+                      : isMailcow
+                        ? server.location
+                        : server.location}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <IconGlobe className="h-4 w-4 shrink-0" /> {displayIp}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {!isMailcow ? (
+            <Badge variant={statusBadgeVariant[server.status]}>{statusLabel[server.status]}</Badge>
+          ) : null}
+          <IconChevronRight className="h-4 w-4 text-(--text-muted)" />
+        </div>
+      </div>
+
+      {(storageStatus === "exceeded" || storageStatus === "warning") && isPloi && (
+        <div
+          className={cn(
+            "mt-3 rounded-lg border px-3 py-2 text-xs",
+            storageStatus === "exceeded"
+              ? "border-red-500/30 bg-red-500/10 text-red-300"
+              : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+          )}
+        >
+          {storageStatus === "exceeded" ? t("ploiStorageExceededBanner") : t("ploiStorageWarningBanner")}
+        </div>
+      )}
+
+      {isDomain ? (
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-(--text-muted)">{t("serverDomainName")}</span>
+            <span className="truncate font-medium text-(--text-primary)">{domainName || "—"}</span>
+          </div>
+          {server.categoryFriendlyName ? (
+            <div className="text-sm text-(--text-muted)">{server.categoryFriendlyName}</div>
+          ) : null}
+        </div>
+      ) : isPlesk ? (
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-(--text-muted)">{t("pleskDomains")}</span>
+            <span className="font-medium text-(--text-primary)">{pleskDomains}</span>
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-(--text-muted)">{t("pleskAvgStorage")}</span>
+              <span className="font-medium text-(--text-primary)">{pleskStorage}</span>
+            </div>
+            <Progress className="mt-1 h-1.5" value={pleskStoragePct} tone="primary" />
+          </div>
+          {pleskMailOn ? (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-(--text-muted)">{t("pleskMailboxes")}</span>
+              <span className="font-medium text-(--text-primary)">
+                {server.pleskStats?.usedMailboxes ?? 0}
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : isMailcow ? (
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between gap-3 text-xs text-(--text-muted)">
+            <span>{t("serverMailcowHost")}</span>
+            <span className="truncate font-medium text-(--text-primary)">{displayIp}</span>
+          </div>
+          {server.mailcowStats ? (
+            <div className="grid grid-cols-2 gap-3">
+              <Metric
+                label={t("serverMailcowDomains")}
+                value={`${mailcowDomainUsed} / ${mailcowDomainMax}`}
+                pct={mailcowDomainPct}
+                tone="primary"
+              />
+              <Metric
+                label={t("serverMailcowMailboxes")}
+                value={`${mailcowMailboxUsed} / ${mailcowMailboxMax || "—"}`}
+                pct={mailcowMailboxPct}
+                tone="primary"
+              />
+              <div className="min-w-0">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-(--text-muted)">{t("serverMailcowStoragePerMailbox")}</span>
+                  <span className="font-medium text-(--text-primary)">
+                    {server.mailcowStats.storagePerMailboxGb} GB
+                  </span>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-(--text-muted)">{t("serverMailcowAliasesPerDomain")}</span>
+                  <span className="font-medium text-(--text-primary)">
+                    {server.mailcowStats.maxAliasesPerDomain}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+          {server.categoryFriendlyName ? (
+            <div className="text-sm text-(--text-muted)">{server.categoryFriendlyName}</div>
+          ) : null}
+        </div>
+      ) : isPloi ? (
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-(--text-muted)">{t("ploiStorage")}</span>
+            <span className="font-medium text-(--text-primary)">{diskLabel}</span>
+          </div>
+          <Progress className="mt-1 h-1.5" value={diskPct} tone={storageTone} />
+        </div>
+      ) : (
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Metric label={t("serverCpu")} value={`${cpuPct}%`} pct={cpuPct} tone="primary" />
+          <Metric label={t("serverRam")} value={ramLabel} pct={ramPct} tone="primary" />
+          <Metric label={t("serverDisk")} value={diskLabel} pct={diskPct} tone="success" />
+        </div>
+      )}
+
+      {!isDomain && !isMailcow ? (
+        <div className="mt-3 flex items-center justify-between text-sm text-(--text-muted)">
+          <span className="truncate pr-2">
+            {isPloi
+              ? server.ploiStats?.locationLabel || server.location
+              : isPlesk
+                ? server.pleskStats?.locationLabel || server.location
+                : server.os}
+          </span>
+          {!isPloi && !isPlesk && (
+            <span className="whitespace-nowrap">
+              {t("serverUptime")} · {server.uptime}
+            </span>
+          )}
+        </div>
+      ) : null}
+    </button>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  pct,
+  tone,
+}: {
+  label: string;
+  value: string;
+  pct: number;
+  tone: "primary" | "accent" | "success" | "warning" | "danger";
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-(--text-muted)">{label}</span>
+        <span className="font-medium text-(--text-primary)">{value}</span>
+      </div>
+      <Progress className="mt-1 h-1.5" value={pct} tone={tone} />
+    </div>
+  );
+}

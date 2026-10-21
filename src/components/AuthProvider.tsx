@@ -1,0 +1,240 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+
+import { resolveApiError } from '../api/resolve-error';
+import { resolveCaughtApiError } from '../api/resolve-caught-error';
+import { ApiError, api, setSessionToken, clearSessionToken, getSessionToken, initSessionToken } from '../lib/api';
+import { applyPublicSettings, setActiveAccountType } from "../lib/public-settings";
+import { unregisterMobilePushOnLogout } from '../lib/push-notifications';
+import { mobileTranslate } from '../i18n/mobile-translate';
+import type { RegisterPayload } from "../features/auth/use-register";
+import type { AuthUser } from "../lib/types";
+
+type LoginPayload = {
+  email: string;
+  password: string;
+  twoFactorCode?: string;
+  rememberMe?: boolean;
+};
+
+type LoginResult =
+  | { success: true; user: AuthUser }
+  | { success: false; error: string; requiresTwoFactor?: boolean };
+
+type RegisterResult =
+  | { success: true; requiresVerification?: boolean; devActivationCode?: string }
+  | { success: false; error?: string };
+
+type AuthContextValue = {
+  user: AuthUser | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  /** Dev-only activation code from last registration when mail is not configured. */
+  pendingDevActivationCode: string | null;
+  clearPendingDevActivationCode: () => void;
+  login: (payload: LoginPayload) => Promise<LoginResult>;
+  register: (payload: RegisterPayload) => Promise<RegisterResult>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [pendingDevActivationCode, setPendingDevActivationCode] = useState<string | null>(null);
+  const inFlight = useRef<Promise<void> | null>(null);
+
+  const clearPendingDevActivationCode = useCallback(() => {
+    setPendingDevActivationCode(null);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    // Skip refresh if no token is stored (user is definitely not logged in)
+    if (!getSessionToken()) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    if (inFlight.current) {
+      await inFlight.current;
+      return;
+    }
+    const p = (async () => {
+      try {
+        const data = await api.auth.me();
+        if (data?.success && data.user) {
+          setUser(data.user as AuthUser);
+        } else {
+          clearSessionToken();
+          setUser(null);
+        }
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+          clearSessionToken();
+        }
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+        inFlight.current = null;
+      }
+    })();
+    inFlight.current = p;
+    await p;
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      await initSessionToken();
+      await refresh();
+    })();
+  }, [refresh]);
+
+  // Tenant public settings (display decimals, Plus visibility).
+  useEffect(() => {
+    void api.shop
+      .publicSettings()
+      .then((data) => applyPublicSettings(data?.settings))
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    setActiveAccountType(user?.accountType ?? null);
+  }, [user?.accountType]);
+
+  // Refresh on focus (matches the web app behavior).
+  useEffect(() => {
+    if (!user) return;
+    const handler = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", handler);
+    window.addEventListener("focus", handler);
+    return () => {
+      document.removeEventListener("visibilitychange", handler);
+      window.removeEventListener("focus", handler);
+    };
+  }, [user, refresh]);
+
+  const login = useCallback<AuthContextValue["login"]>(
+    async ({ email, password, twoFactorCode, rememberMe }) => {
+      try {
+        const data = await api.auth.login({
+          email: email.trim(),
+          password,
+          twoFactorCode,
+          rememberMe: !!rememberMe,
+        });
+
+        if (data?.success && data.token && data.user) {
+          setSessionToken(data.token, { persist: rememberMe !== false });
+          await refresh();
+          return { success: true, user: data.user as AuthUser };
+        }
+        return {
+          success: false,
+          error: resolveApiError(data, mobileTranslate, { fallbackKey: "authBadCredentials" }),
+          requiresTwoFactor: data?.requiresTwoFactor,
+        };
+      } catch (err) {
+        if (err instanceof ApiError) {
+          console.warn("[plus.auth.login] api-error", {
+            status: err.status,
+            code: err.code,
+            message: err.message,
+          });
+          const payload = err.payload as { requiresTwoFactor?: boolean } | null;
+          return {
+            success: false,
+            error: resolveCaughtApiError(err, mobileTranslate, "authBadCredentials"),
+            requiresTwoFactor: payload?.requiresTwoFactor,
+          };
+        }
+        console.warn("[plus.auth.login] network-error", err);
+        // CORS / offline / aborted fetch — not a credential failure
+        return { success: false, error: mobileTranslate("networkError") };
+      }
+    },
+    [refresh],
+  );
+
+  const register = useCallback<AuthContextValue["register"]>(async (data) => {
+    try {
+      const result = await api.auth.register(data);
+      if (result?.success) {
+        if (result.devActivationCode) {
+          setPendingDevActivationCode(result.devActivationCode);
+        }
+        if (result.token) {
+          setSessionToken(result.token, { persist: true });
+          await refresh();
+        }
+        return {
+          success: true,
+          requiresVerification: result.requiresVerification,
+          ...(result.devActivationCode ? { devActivationCode: result.devActivationCode } : {}),
+        };
+      }
+      return {
+        success: false,
+        error: resolveApiError(result, mobileTranslate, { fallbackKey: "authRegisterError" }),
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: resolveCaughtApiError(err, mobileTranslate, "authRegisterError"),
+      };
+    }
+  }, [refresh]);
+
+  const logout = useCallback(async () => {
+    try {
+      await unregisterMobilePushOnLogout();
+    } catch {
+      // ignore push cleanup failures
+    }
+    try {
+      await api.auth.logout();
+    } catch {
+      // ignore
+    } finally {
+      clearSessionToken();
+      setUser(null);
+      setPendingDevActivationCode(null);
+    }
+  }, []);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      pendingDevActivationCode,
+      clearPendingDevActivationCode,
+      login,
+      register,
+      logout,
+      refresh,
+    }),
+    [
+      user,
+      isLoading,
+      pendingDevActivationCode,
+      clearPendingDevActivationCode,
+      login,
+      register,
+      logout,
+      refresh,
+    ],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
+}

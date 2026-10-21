@@ -1,0 +1,301 @@
+import { resolveApiError } from "../api/resolve-error";
+import { resolveCaughtApiError } from "../api/resolve-caught-error";
+import { useCallback, useEffect, useState } from "react";
+import { Loader2, Sparkles } from "lucide-react";
+
+import { DesktopOnlyHint } from "../capabilities/CapabilityGuard";
+import { CustomerFeatureUnavailable } from "../components/CustomerFeatureUnavailable";
+import { AppModal } from "../components/ui/AppModal";
+import { Button } from "../components/ui/button";
+import { useAuth } from "../components/AuthProvider";
+import { useToast } from "../components/Toast";
+import { useI18n } from "../i18n";
+import type { PlusStatusResponse } from "../api/plus";
+import { openExternalUrl } from "../features/billing/lib";
+import { api } from "../lib/api";
+import { hidePlusUi } from "../lib/plus";
+import { canPurchase } from "../lib/platform";
+
+export function PlusScreen() {
+  const { t, lang } = useI18n();
+  const { user, isLoading: authLoading } = useAuth();
+  const { show } = useToast();
+  const [status, setStatus] = useState<PlusStatusResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [subscribing, setSubscribing] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [savingPooling, setSavingPooling] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+
+  const fmtDate = (value: string | null | undefined) => {
+    if (!value) return "–";
+    return new Intl.DateTimeFormat(lang === "de" ? "de-DE" : "en-US").format(new Date(value));
+  };
+
+  const fetchStatus = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.plus.status();
+      setStatus(data);
+    } catch (err) {
+      show(resolveCaughtApiError(err, t), "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [show, t]);
+
+  useEffect(() => {
+    if (authLoading || hidePlusUi(user)) return;
+    void fetchStatus();
+  }, [authLoading, fetchStatus, user]);
+
+  const handleSubscribe = async (paymentMethod: "mollie" | "guthaben") => {
+    setSubscribing(true);
+    try {
+      const data = await api.plus.subscribe(paymentMethod);
+      if (data.success && data.checkoutUrl) {
+        await openExternalUrl(data.checkoutUrl);
+        return;
+      }
+      show(resolveApiError(data, t, { fallbackKey: "plusSubscribeFailed" }), "error");
+    } catch (err) {
+      show(resolveCaughtApiError(err, t, "plusNetworkError"), "error");
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    try {
+      const data = await api.plus.reactivate();
+      if (data.success) {
+        show(t("plusReactivateSuccess"), "success");
+        void fetchStatus();
+      } else {
+        show(resolveApiError(data, t, { fallbackKey: "plusReactivateFailed" }), "error");
+      }
+    } catch (err) {
+      show(resolveCaughtApiError(err, t, "plusNetworkError"), "error");
+    }
+  };
+
+  const handleCancel = async () => {
+    setCanceling(true);
+    try {
+      const data = await api.plus.cancel();
+      if (data.success) {
+        show(t("plusCancelSuccess"), "success");
+        setCancelOpen(false);
+        void fetchStatus();
+      } else {
+        show(resolveApiError(data, t, { fallbackKey: "plusCancelFailed" }), "error");
+      }
+    } catch (err) {
+      show(resolveCaughtApiError(err, t, "plusNetworkError"), "error");
+    } finally {
+      setCanceling(false);
+    }
+  };
+
+  const updatePooling = async (enabled: boolean) => {
+    setSavingPooling(true);
+    try {
+      const data = await api.plus.updatePooling(enabled);
+      if (data.success) {
+        show(t("plusPoolingSaved"), "success");
+        void fetchStatus();
+      } else {
+        show(t("plusPoolingSaveFailed"), "error");
+      }
+    } catch (err) {
+      show(resolveCaughtApiError(err, t, "plusNetworkError"), "error");
+    } finally {
+      setSavingPooling(false);
+    }
+  };
+
+  if (!authLoading && hidePlusUi(user)) {
+    return <CustomerFeatureUnavailable />;
+  }
+
+  if (authLoading || loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="size-6 animate-spin text-(--text-muted)" />
+      </div>
+    );
+  }
+
+  const sub = status?.subscription;
+  const active = status?.plusActive ?? false;
+  const isAdminGrant = status?.isAdminGrant ?? user?.role === "ADMIN";
+
+  return (
+    <div className="mx-auto mt-8 w-full max-w-screen space-y-4 pb-24 lg:max-w-6xl">
+      <div className="flex items-center gap-2">
+        <Sparkles className="size-5 text-primary" />
+        <div>
+          <h1 className="text-base font-semibold text-(--text-primary)">{t("dashboardPlus")}</h1>
+          <p className="text-xs text-(--text-muted)">{t("plusDashboardSubtitle")}</p>
+        </div>
+      </div>
+
+      {active ? (
+        <div className="glass space-y-4 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-2">
+              <span className="inline-flex items-center rounded-(--radius-action) bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+                {t("plusStatusActive")}
+              </span>
+              {isAdminGrant && (
+                <span className="ml-2 inline-flex items-center rounded-(--radius-action) bg-(--warning)/15 px-2 py-0.5 text-xs font-semibold text-warning">
+                  {t("plusStatusAdminGrant")}
+                </span>
+              )}
+              <div className="text-sm text-(--text-secondary)">
+                {sub?.cancelAtPeriodEnd ? (
+                  <p>
+                    {t("plusExpiresAt")} <strong>{fmtDate(sub?.currentPeriodEnd)}</strong>
+                    <span className="ml-2 text-xs text-warning">{t("plusStatusCancelPending")}</span>
+                  </p>
+                ) : (
+                  <p>
+                    {t("plusRenewsAt")} <strong>{fmtDate(sub?.currentPeriodEnd)}</strong>
+                  </p>
+                )}
+                {sub && !sub.isAdminGrant && !sub.cancelAtPeriodEnd && (
+                  <p className="text-xs text-(--text-muted)">
+                    {t("plusNextCharge")}: <strong>{sub.basePriceGross.toFixed(2)} €</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+            {sub && !sub.cancelAtPeriodEnd && !isAdminGrant && (
+              <Button variant="outline" onClick={() => setCancelOpen(true)}>
+                {t("plusCancelBtn")}
+              </Button>
+            )}
+            {sub?.cancelAtPeriodEnd && (
+              <Button variant="outline" onClick={() => void handleReactivate()}>
+                {t("plusReactivateBtn")}
+              </Button>
+            )}
+          </div>
+
+          <div className="rounded-(--radius-surface) border border-border bg-(--bg-elevated) p-3">
+            <h2 className="text-sm font-semibold text-(--text-primary)">{t("plusSavingsTitle")}</h2>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="rounded-(--radius-control) border border-border p-2">
+                <p className="text-[10px] uppercase tracking-wide text-(--text-muted)">{t("plusSavingsCurrent")}</p>
+                <p className="text-lg font-bold text-success">{(status?.savings?.currentPeriodGross ?? 0).toFixed(2)} €</p>
+              </div>
+              <div className="rounded-(--radius-control) border border-border p-2">
+                <p className="text-[10px] uppercase tracking-wide text-(--text-muted)">{t("plusSavingsLifetime")}</p>
+                <p className="text-lg font-bold text-success">{(status?.savings?.lifetimeGross ?? 0).toFixed(2)} €</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-(--radius-surface) border border-border bg-(--bg-elevated) p-3 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-(--text-primary)">{t("trafficPoolingTitle")}</h2>
+              <label className="inline-flex items-center gap-2 text-xs text-(--text-secondary)">
+                <input
+                  type="checkbox"
+                  checked={!!status?.pooling?.enabled}
+                  onChange={(e) => void updatePooling(e.target.checked)}
+                  disabled={savingPooling}
+                />
+                {t("active")}
+              </label>
+            </div>
+            <p className="text-xs text-(--text-muted)">{t("trafficPoolingDescription")}</p>
+            {(status?.pooling?.pools ?? []).length === 0 ? (
+              <p className="text-xs text-(--text-muted)">{t("plusNoActivePools")}</p>
+            ) : (
+              (status?.pooling?.pools ?? []).map((pool) => (
+                <div key={pool.key} className="rounded-(--radius-control) border border-border p-2 text-xs">
+                  <p className="font-semibold text-(--text-primary)">{pool.categoryName ?? pool.categoryId}</p>
+                  <p className="text-(--text-muted)">
+                    {pool.memberCount} {t("tabServers")} · {pool.usedTb.toFixed(2)} / {pool.includedTb.toFixed(2)} TB
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="rounded-(--radius-surface) border border-border bg-(--bg-elevated) p-3 space-y-3">
+            <h2 className="text-sm font-semibold text-(--text-primary)">{t("plusForTeams")}</h2>
+            <p className="text-xs text-(--text-secondary)">{t("plusTeamPitchDesc")}</p>
+            <div className="space-y-2">
+              {(
+                [
+                  ["plusTeamFeatMembers", "plusTeamFeatMembersDesc"],
+                  ["plusTeamFeatGroups", "plusTeamFeatGroupsDesc"],
+                  ["plusTeamFeatProjects", "plusTeamFeatProjectsDesc"],
+                  ["plusTeamFeatBilling", "plusTeamFeatBillingDesc"],
+                ] as const
+              ).map(([titleKey, descKey]) => (
+                <div key={titleKey}>
+                  <p className="text-xs font-medium text-(--text-primary)">{t(titleKey)}</p>
+                  <p className="text-[11px] text-(--text-secondary)">{t(descKey)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : canPurchase() ? (
+        <div className="glass space-y-4 p-6">
+          <h2 className="text-lg font-semibold text-(--text-primary)">{t("plusForTeams")}</h2>
+          <p className="text-sm text-(--text-secondary)">{t("plusTeamPitchDesc")}</p>
+          <div className="grid gap-3 text-left">
+            {(
+              [
+                ["plusTeamFeatMembers", "plusTeamFeatMembersDesc"],
+                ["plusTeamFeatGroups", "plusTeamFeatGroupsDesc"],
+                ["plusTeamFeatProjects", "plusTeamFeatProjectsDesc"],
+                ["plusTeamFeatBilling", "plusTeamFeatBillingDesc"],
+              ] as const
+            ).map(([titleKey, descKey]) => (
+              <div key={titleKey}>
+                <p className="text-sm font-medium text-(--text-primary)">{t(titleKey)}</p>
+                <p className="mt-0.5 text-xs text-(--text-secondary)">{t(descKey)}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-(--text-muted)">{t("plusForTeamsDesc")}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={subscribing} onClick={() => void handleSubscribe("mollie")}>
+              {subscribing ? t("plusSubscribing") : t("plusActivate")}
+            </Button>
+            <Button variant="outline" disabled={subscribing} onClick={() => void handleSubscribe("guthaben")}>
+              {t("plusPayWithWallet")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <DesktopOnlyHint capability="purchase" />
+      )}
+
+      <AppModal
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        closeAriaLabel={t("cancel")}
+        closeDisabled={canceling}
+        maxWidthClassName="max-w-md"
+        className="space-y-4 overflow-y-auto p-4"
+      >
+        <h3 className="text-base font-semibold text-(--text-primary)">{t("plusCancelConfirmTitle")}</h3>
+        <p className="text-sm text-(--text-muted)">{t("plusCancelConfirmMessage")}</p>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setCancelOpen(false)}>
+            {t("cancel")}
+          </Button>
+          <Button variant="destructive" disabled={canceling} onClick={() => void handleCancel()}>
+            {canceling ? t("plusSubscribing") : t("plusCancelConfirmBtn")}
+          </Button>
+        </div>
+      </AppModal>
+    </div>
+  );
+}

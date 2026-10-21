@@ -1,0 +1,231 @@
+# Standalone mobile/desktop CI (mirrored from ignite/mobile/ignite).
+# Web bundle -> platform packages -> GitHub release on main.
+name: Mobile
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: "1.2.10"
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+jobs:
+  web-build:
+    name: Web bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 5
+          if-no-files-found: error
+
+  desktop-linux:
+    name: Desktop Linux
+    needs: web-build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: bun run desktop:build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux
+          path: |
+            release/ignite-desktop-*.AppImage
+            release/latest-linux.yml
+          retention-days: 5
+          if-no-files-found: warn
+
+  desktop-windows:
+    name: Desktop Windows
+    if: vars.MOBILE_ENABLE_WINDOWS == 'true'
+    needs: web-build
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: bun run desktop:build:win:builder
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Verify Windows desktop artifacts
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse release | Format-Table Name, Length
+          if (-not (Get-ChildItem release -Recurse -Filter 'ignite-desktop-portable-*.exe' | Select-Object -First 1)) {
+            throw 'Portable executable (ignite-desktop-portable-*.exe) not found in release/'
+          }
+          if (-not (Get-ChildItem release -Recurse -Filter 'ignite-desktop-setup-*.exe' | Select-Object -First 1)) {
+            throw 'NSIS installer (ignite-desktop-setup-*.exe) not found in release/'
+          }
+          if (-not (Get-ChildItem release -Recurse -Filter 'ignite-desktop-*.msix' | Select-Object -First 1)) {
+            throw 'MSIX package (ignite-desktop-*.msix) not found in release/'
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-portable
+          path: release/ignite-desktop-portable-*.exe
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-installer
+          path: |
+            release/ignite-desktop-setup-*.exe
+            release/latest.yml
+            release/*.blockmap
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-msix
+          path: |
+            release/ignite-desktop-*.msix
+            release/ignite-desktop-*.msixupload
+          retention-days: 7
+          if-no-files-found: error
+
+  desktop-macos:
+    name: Desktop macOS
+    if: vars.MOBILE_ENABLE_MACOS == 'true'
+    needs: web-build
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: bun run desktop:build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos
+          path: |
+            release/ignite-desktop-*.dmg
+            release/latest-mac.yml
+          retention-days: 5
+          if-no-files-found: error
+
+  android:
+    name: Android (debug APK)
+    needs: web-build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: bunx cap sync android
+      - run: chmod +x gradlew && ./gradlew assembleDebug
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 5
+          if-no-files-found: warn
+
+  release:
+    name: GitHub release
+    needs: [web-build, desktop-linux, android, desktop-windows, desktop-macos]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-input
+
+      - name: Prepare release assets
+        run: bash scripts/prepare-release-assets.sh release-input release-upload
+
+      - name: Resolve version
+        id: meta
+        run: |
+          VERSION="$(node -p "require('./package.json').version.replace(/^v/i, '')")"
+          TAG="v${VERSION}-${GITHUB_RUN_NUMBER}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: "ignite-mobile ${{ steps.meta.outputs.version }} (build ${{ github.run_number }})"
+          generate_release_notes: true
+          make_latest: true
+          fail_on_unmatched_files: false
+          body: |
+            Automatischer Release von **ignite-mobile**.
+
+            | | |
+            |---|---|
+            | Versionscode | `${{ steps.meta.outputs.version }}` |
+            | Build | `${{ github.run_number }}` |
+            | Commit | `${{ github.sha }}` |
+            | Workflow | [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |
+          files: release-upload/*
