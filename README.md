@@ -24,7 +24,7 @@ Changes are made in the monorepo and mirrored to `ignite-mobile` via the GitHub 
 
 | Platform | Required |
 |---|---|
-| Web / desktop | Bun 1.2.x |
+| Web / desktop | Bun 1.4.x |
 | Desktop build (Linux CI) | `sharp` (devDependency, icons from WebP) |
 | Android | Node.js 22+, JDK 21, Android SDK |
 | macOS desktop | Xcode (local only; no iOS CI build) |
