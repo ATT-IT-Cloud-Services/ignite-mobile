@@ -1161,6 +1161,8 @@ export const ApiErrorCodes = {
   invoiceHasNoLinkedLexwareDocument: "invoiceHasNoLinkedLexwareDocument",
   invoiceNotFound: "invoiceNotFound",
   invoiceNotFound2: "invoiceNotFound2",
+  invoicePaymentBlockedForAccount: "invoicePaymentBlockedForAccount",
+  invoiceSettlementFailed: "invoiceSettlementFailed",
   invoiceWasNotPaid: "invoiceWasNotPaid",
   invoiceWasVoidedAndCannotBePaid: "invoiceWasVoidedAndCannotBePaid",
   invoicingProviderOperationUnsupported: "invoicingProviderOperationUnsupported",

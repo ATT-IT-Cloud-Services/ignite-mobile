@@ -2117,6 +2117,7 @@ export const de: Dict = {
   businessAnchorDay: "Rechnungsstichtag",
   businessNoData: "Keine Geschäftsdaten verfügbar.",
   // API error messages (synced from web)
+  apiErrorInvoicePaymentBlockedForAccount: "Kauf auf Rechnung ist für dieses Konto nicht verfügbar.",
   apiErrorCaseObjectionAlreadyFiled: "Zu diesem Vorgang liegt bereits ein Einspruch vor. Der Vorgang wird erneut geprüft.",
   apiErrorCaseObjectionNotPossible: "Zu diesem Vorgang ist zurzeit kein Einspruch möglich.",
   apiErrorObjectionTextTooShort: "Bitte begründen Sie Ihren Einspruch mit mindestens {min} Zeichen.",

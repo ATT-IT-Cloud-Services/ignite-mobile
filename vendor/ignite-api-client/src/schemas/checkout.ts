@@ -23,6 +23,8 @@ export interface CheckoutBootstrap {
   netPointsBalance: { points: number; eurValue: number } | null;
   businessBillingConfig: {
     invoiceEnabled: boolean;
+    /** Account-level block: this account must not buy on invoice. */
+    invoicePaymentBlocked?: boolean;
     hasActiveFund: boolean;
     anchorDay: number | null;
   } | null;

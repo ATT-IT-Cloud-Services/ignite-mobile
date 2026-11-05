@@ -2547,5 +2547,11 @@ export const LEGACY_TEXT_TO_CODE: Record<string, string> = {
   "No free IP address could be allocated.": "ipAllocationFailed",
   "adminUpgradeMixedDirectionNotAllowed": "adminUpgradeMixedDirectionNotAllowed",
   "Gleichzeitig erhöhen und verringern ist nicht möglich — buchen Sie Upgrade und Downgrade getrennt.": "adminUpgradeMixedDirectionNotAllowed",
-  "Increasing and decreasing at the same time is not possible — book the upgrade and the downgrade separately.": "adminUpgradeMixedDirectionNotAllowed"
+  "Increasing and decreasing at the same time is not possible — book the upgrade and the downgrade separately.": "adminUpgradeMixedDirectionNotAllowed",
+  "invoicePaymentBlockedForAccount": "invoicePaymentBlockedForAccount",
+  "Kauf auf Rechnung ist für dieses Konto nicht verfügbar.": "invoicePaymentBlockedForAccount",
+  "Invoice payment is not available for this account.": "invoicePaymentBlockedForAccount",
+  "invoiceSettlementFailed": "invoiceSettlementFailed",
+  "Die offene Sammelrechnung konnte nicht abgerechnet werden. Kauf auf Rechnung bleibt vorerst aktiv.": "invoiceSettlementFailed",
+  "The open collective invoice could not be settled. Invoice payment stays active for now.": "invoiceSettlementFailed"
 };

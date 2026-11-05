@@ -2129,6 +2129,7 @@ export const en = {
   businessAnchorDay: "Invoice anchor day",
   businessNoData: "No business data available.",
   // API error messages (synced from web)
+  apiErrorInvoicePaymentBlockedForAccount: "Invoice payment is not available for this account.",
   apiErrorCaseObjectionAlreadyFiled: "An objection has already been filed for this case. The case is being reviewed again.",
   apiErrorCaseObjectionNotPossible: "An objection is currently not possible for this case.",
   apiErrorObjectionTextTooShort: "Please give your objection with at least {min} characters.",
