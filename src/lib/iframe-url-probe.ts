@@ -2,11 +2,22 @@ import { isElizonAppUrl } from "./app-url-router";
 
 const ELIZON_URL_RE = /https?:\/\/(?:www\.)?elizon\.app[^\s"'<>)\\|]*/gi;
 
+const URL_ENTITIES: Record<string, string> = {
+  amp: "&",
+  quot: '"',
+  "#39": "'",
+  apos: "'",
+  lt: "<",
+  gt: ">",
+};
+
+/**
+ * Decode HTML entities in one pass. Sequential `.replace()` calls on `&amp;`
+ * first would unescape `&amp;quot;` into `"`, i.e. double-unescape.
+ */
 function cleanUrlCandidate(raw: string): string {
   return raw
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+    .replace(/&(amp|quot|apos|lt|gt|#39);/g, (match, entity: string) => URL_ENTITIES[entity] ?? match)
     .replace(/[.,;:)\]}>]+$/g, "");
 }
 
