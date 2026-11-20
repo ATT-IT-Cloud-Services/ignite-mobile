@@ -41,7 +41,7 @@ type SidebarRouteName = Exclude<
   | "permission-accept"
   | "console"
   | "container-project"
-  | "container-workload"
+  | "container-pod"
   | "blog-detail"
 >;
 type SidebarRoute = Extract<Route, { name: SidebarRouteName }>;
@@ -118,7 +118,7 @@ function getLabel(route: SidebarRouteName, t: (key: string) => string) {
 
 function normalizeRouteName(route: Route["name"]): Route["name"] {
   if (route === "server") return "servers";
-  if (route === "container-project" || route === "container-workload") return "container";
+  if (route === "container-project" || route === "container-pod") return "container";
   if (route === "invoices" || route === "invoice-pay" || route === "invoice-detail") return "billing";
   return route;
 }

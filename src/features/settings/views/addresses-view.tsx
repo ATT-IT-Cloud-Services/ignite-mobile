@@ -10,6 +10,7 @@ import { useI18n } from "../../../i18n";
 import { resolveApiError } from "../../../api/resolve-error";
 import { resolveCaughtApiError } from "../../../api/resolve-caught-error";
 import { api } from "../../../lib/api";
+import { isAddressSystemLabel, resolveAddressLabel } from "../../../lib/address-label";
 import type { UserAddress } from "../../../api/settings";
 import { SettingsSubView } from "../components";
 
@@ -81,7 +82,7 @@ export function AddressesSettingsView({ onBack }: { onBack: () => void }) {
   const openEdit = (address: UserAddress) => {
     setEditing(address);
     setForm({
-      label: address.label ?? "",
+      label: isAddressSystemLabel(address.label) ? "" : address.label ?? "",
       firstName: address.firstName ?? "",
       lastName: address.lastName ?? "",
       companyName: address.companyName ?? "",
@@ -251,7 +252,11 @@ export function AddressesSettingsView({ onBack }: { onBack: () => void }) {
               <MapPin className="mt-0.5 size-4 shrink-0 text-(--brand-primary)" />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  {address.label && <p className="text-sm font-medium text-(--text-primary)">{address.label}</p>}
+                  {address.label && (
+                    <p className="text-sm font-medium text-(--text-primary)">
+                      {resolveAddressLabel(address.label, t("addressLabelRegistration"))}
+                    </p>
+                  )}
                   {address.isDefault && (
                     <span className="rounded-full bg-(--brand-primary)/15 px-2 py-0.5 text-[10px] font-medium text-(--brand-primary)">
                       {t("settingsDefaultAddress")}

@@ -23,17 +23,19 @@ import {
   BlogPostsResource,
   ByoasResource,
   CaseReportsResource,
-  ContainerResource,
   CouponsResource,
   DocumentsResource,
   EventsResource,
   HealthResource,
   IntegrationsResource,
+  McpResource,
   NewsletterResource,
   OpenApiResource,
+  OrdersResource,
   PermissionsResource,
   PingResource,
   PlusResource,
+  PodsResource,
   PreordersResource,
   PublicApiResource,
   PublicSettingsResource,
@@ -81,17 +83,19 @@ export class IgniteClient extends BaseClient {
   public readonly blogPosts: BlogPostsResource;
   public readonly byoas: ByoasResource;
   public readonly caseReports: CaseReportsResource;
-  public readonly container: ContainerResource;
   public readonly coupons: CouponsResource;
   public readonly documents: DocumentsResource;
   public readonly events: EventsResource;
   public readonly health: HealthResource;
   public readonly integrations: IntegrationsResource;
+  public readonly mcp: McpResource;
   public readonly newsletter: NewsletterResource;
   public readonly openApi: OpenApiResource;
+  public readonly orders: OrdersResource;
   public readonly permissions: PermissionsResource;
   public readonly ping: PingResource;
   public readonly plus: PlusResource;
+  public readonly pods: PodsResource;
   public readonly preorders: PreordersResource;
   public readonly publicApi: PublicApiResource;
   public readonly publicSettings: PublicSettingsResource;
@@ -125,17 +129,19 @@ export class IgniteClient extends BaseClient {
     this.blogPosts = new BlogPostsResource(this);
     this.byoas = new ByoasResource(this);
     this.caseReports = new CaseReportsResource(this);
-    this.container = new ContainerResource(this);
     this.coupons = new CouponsResource(this);
     this.documents = new DocumentsResource(this);
     this.events = new EventsResource(this);
     this.health = new HealthResource(this);
     this.integrations = new IntegrationsResource(this);
+    this.mcp = new McpResource(this);
     this.newsletter = new NewsletterResource(this);
     this.openApi = new OpenApiResource(this);
+    this.orders = new OrdersResource(this);
     this.permissions = new PermissionsResource(this);
     this.ping = new PingResource(this);
     this.plus = new PlusResource(this);
+    this.pods = new PodsResource(this);
     this.preorders = new PreordersResource(this);
     this.publicApi = new PublicApiResource(this);
     this.publicSettings = new PublicSettingsResource(this);

@@ -263,7 +263,7 @@ export function ServiceCard({
               ? server.ploiStats?.locationLabel || server.location
               : isPlesk
                 ? server.pleskStats?.locationLabel || server.location
-                : server.os}
+                : server.os || "—"}
           </span>
           {!isPloi && !isPlesk && (
             <span className="whitespace-nowrap">

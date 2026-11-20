@@ -1,3 +1,4 @@
+import { mobileTranslate } from "@/i18n/mobile-translate";
 import type { AdvisorQuestion, ShopCategory } from "./shop-catalog";
 
 export function localizeShopText(
@@ -79,14 +80,12 @@ export function getAdvisorCopy(category: ShopCategory, lang: string) {
     title: localizeShopText(
       useFlow ? flow?.title : config?.title,
       lang,
-      lang === "de" ? "Brauchen Sie Hilfe bei der Auswahl?" : "Need help choosing?",
+      mobileTranslate("shopConsultationFallbackTitle"),
     ),
     description: localizeShopText(
       useFlow ? flow?.description : config?.description,
       lang,
-      lang === "de"
-        ? "Beantworten Sie ein paar kurze Fragen – wir empfehlen Ihnen die passende Kategorie."
-        : "Answer a few short questions and we will recommend the right category.",
+      mobileTranslate("shopConsultationFallbackDescription"),
     ),
   };
 }

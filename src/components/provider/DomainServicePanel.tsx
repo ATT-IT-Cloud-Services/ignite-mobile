@@ -22,6 +22,11 @@ import type {
   LiveRegistryStatus,
 } from "../../api/domains";
 
+/** A stored translation must not tell the customer who registered the domain. */
+function hintNamesUpstream(value: string): boolean {
+  return /skrime|domain-reseller-api|domain-?robot|hetzner|vultr/i.test(value);
+}
+
 type ContactForm = {
   handleId: string;
   firstName: string;
@@ -630,7 +635,9 @@ export function DomainServicePanel({
                       placeholder={t("domainDnssecKeyTagPlaceholder")}
                       onChange={(e) => setDnssecKeyTag(e.target.value)}
                     />
-                    <span className="text-xs text-(--text-muted)">{t("domainDnssecKeyTagHint")}</span>
+                    {hintNamesUpstream(t("domainDnssecKeyTagHint")) ? null : (
+                      <span className="text-xs text-(--text-muted)">{t("domainDnssecKeyTagHint")}</span>
+                    )}
                   </label>
                   <label className="block space-y-1 text-sm">
                     <span className="text-(--text-muted)">{t("domainDnssecPublicKeyLabel")} *</span>

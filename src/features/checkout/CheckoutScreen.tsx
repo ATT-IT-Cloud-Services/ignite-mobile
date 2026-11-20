@@ -22,6 +22,7 @@ import { AppModal } from "../../components/ui/AppModal";
 import type { CheckoutPaymentMethod } from "../../api/checkout";
 import { useCheckout, type NewAddressForm } from "./useCheckout";
 import { cartService, type CartItem } from "../../lib/cart-service";
+import { resolveAddressLabel } from "../../lib/address-label";
 import { formatBalance } from "../billing/lib";
 
 type I18nKey = keyof Dict;
@@ -423,7 +424,8 @@ function AddressStep({ c }: { c: CheckoutCtx }) {
                   <span className="block font-medium text-(--text-primary)">
                     {[addr.companyName, `${addr.firstName ?? ""} ${addr.lastName ?? ""}`.trim()]
                       .filter(Boolean)
-                      .join(" · ") || addr.label || addr.street}
+                      .join(" · ") ||
+                      resolveAddressLabel(addr.label, t("addressLabelRegistration"), addr.street)}
                   </span>
                   {addr.street}, {addr.zip} {addr.city}, {addr.country}
                 </span>

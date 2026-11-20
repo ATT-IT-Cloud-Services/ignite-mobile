@@ -37,7 +37,7 @@ export function ShopWizardShell({
             type="button"
             onClick={onClose}
             className="grid size-9 shrink-0 place-items-center rounded-xl border border-border text-(--text-secondary) hover:bg-(--surface-soft)"
-            aria-label="Schließen"
+            aria-label={mobileTranslate("close")}
           >
             <X className="size-4" />
           </button>

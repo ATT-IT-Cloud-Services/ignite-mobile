@@ -10,7 +10,7 @@ import { SupportResource } from "../api/support";
 import { UserResource } from "../api/user";
 import { WalletResource } from "../api/wallet";
 import { BusinessResource } from "../api/business";
-import { ContainerResource } from "../api/container";
+import { PodsResource } from "../api/pods";
 import { AffiliatesResource } from "../api/affiliates";
 import { DomainsResource } from "../api/domains";
 import { IpManagerResource } from "../api/ip-manager";
@@ -141,7 +141,7 @@ export class ApiClient implements ApiTransport {
   public readonly user = new UserResource(ignite);
   public readonly wallet = new WalletResource(ignite);
   public readonly business = new BusinessResource(ignite);
-  public readonly container = new ContainerResource(ignite);
+  public readonly pods = new PodsResource(ignite);
   public readonly affiliates = new AffiliatesResource(ignite);
   public readonly byoip = new ByoipResource(ignite);
   public readonly byoas = new ByoasResource(ignite);

@@ -73,16 +73,17 @@ function mapDashboardPath(pathname: string, searchParams: URLSearchParams): Rout
   if (startsWithPath(path, "/dashboard/plus") || startsWithPath(path, "/dashboard/elizon-plus")) {
     return { name: "plus" };
   }
-  if (startsWithPath(path, "/dashboard/container")) {
-    const workload = path.match(/^\/dashboard\/container\/([^/]+)\/workloads\/([^/]+)/);
-    if (workload?.[1] && workload[2]) {
+  if (startsWithPath(path, "/dashboard/pods")) {
+    // /dashboard/pods/<projectId>/<podId>
+    const pod = path.match(/^\/dashboard\/pods\/([^/]+)\/([^/]+)/);
+    if (pod?.[1] && pod[2]) {
       return {
-        name: "container-workload",
-        projectId: decodeURIComponent(workload[1]),
-        workloadId: decodeURIComponent(workload[2]),
+        name: "container-pod",
+        projectId: decodeURIComponent(pod[1]),
+        podId: decodeURIComponent(pod[2]),
       };
     }
-    const project = path.match(/^\/dashboard\/container\/([^/]+)/);
+    const project = path.match(/^\/dashboard\/pods\/([^/]+)/);
     if (project?.[1]) return { name: "container-project", id: decodeURIComponent(project[1]) };
     return { name: "container" };
   }

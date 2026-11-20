@@ -296,10 +296,24 @@ export class ServicesResource extends ResourceClient {
   }
 
   /**
+   * @generated GET /services/[id]/console/logs
+   */
+  consoleLogs(id: string, query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/services/${encodeURIComponent(id)}/console/logs`, query);
+  }
+
+  /**
    * @generated GET /services/[id]/console/stream
    */
   consoleStream(id: string, query?: QueryParams) {
     return this.get<Record<string, unknown>>(`/services/${encodeURIComponent(id)}/console/stream`, query);
+  }
+
+  /**
+   * @generated GET /services/[id]/content/facets
+   */
+  contentFacets(id: string, query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/services/${encodeURIComponent(id)}/content/facets`, query);
   }
 
   /**

@@ -67,7 +67,7 @@ export function Header() {
   const showCart = canPurchase() && !isMobileNative();
 
   const balance = Number(user?.balance) || 0;
-  const netPoints = Number(user?.netPointsBalance) || 0;
+  const netPoints = Math.round(Number(user?.netPointsBalance) || 0);
 
   return (
     <header className="glass-navbar app-header safe-top safe-x z-40 flex shrink-0 items-center gap-3 border-b border-border bg-(--bg-base) px-4 py-2.5">

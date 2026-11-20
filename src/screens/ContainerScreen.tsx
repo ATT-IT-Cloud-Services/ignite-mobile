@@ -2,7 +2,12 @@ import { resolveCaughtApiError } from "../api/resolve-caught-error";
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 
-import type { ContainerAccess, ContainerProjectSummary, ContainerRegion } from "../api/container";
+import type {
+  ContainerAccess,
+  ContainerProjectSummary,
+  ContainerRegion,
+  ContainerSettlementMode,
+} from "../api/pods";
 import { useAuth } from "../components/AuthProvider";
 import { useRouter } from "../components/Router";
 import { useToast } from "../components/Toast";
@@ -18,8 +23,21 @@ function isBusinessAccount(accountType?: string | null) {
   return ["business", "BUSINESS"].includes(accountType ?? "");
 }
 
+function formatTokens(value: number, lang: string) {
+  return new Intl.NumberFormat(lang === "de" ? "de-DE" : "en-GB", {
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+const SETTLEMENT_MODES: ContainerSettlementMode[] = [
+  "balance",
+  "invoice",
+  "business_fund",
+  "token_wallet",
+];
+
 export function ContainerScreen() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user, isLoading: authLoading } = useAuth();
   const { navigate } = useRouter();
   const { show } = useToast();
@@ -33,12 +51,12 @@ export function ContainerScreen() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [providerId, setProviderId] = useState("");
-  const [settlementMode, setSettlementMode] = useState<"invoice" | "business_fund">("invoice");
+  const [settlementMode, setSettlementMode] = useState<ContainerSettlementMode | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const accessRes = await api.container.access();
+      const accessRes = await api.pods.access();
       const nextAccess = accessRes.access;
       setAccess(nextAccess);
       if (!nextAccess.canRead && !nextAccess.allowed) {
@@ -46,8 +64,8 @@ export function ContainerScreen() {
         return;
       }
       const [projectRes, regionRes] = await Promise.all([
-        api.container.listProjects(),
-        api.container.regions().catch(() => ({ success: true, regions: [] as ContainerRegion[] })),
+        api.pods.listProjects(),
+        api.pods.regions().catch(() => ({ success: true, regions: [] as ContainerRegion[] })),
       ]);
       setProjects(projectRes.projects ?? []);
       const list = regionRes.regions ?? [];
@@ -69,20 +87,43 @@ export function ContainerScreen() {
     void load();
   }, [authLoading, load, navigate, user?.accountType]);
 
-  useEffect(() => {
-    if (access?.invoiceEnabled) setSettlementMode("invoice");
-    else if (access?.hasActiveFund) setSettlementMode("business_fund");
-  }, [access?.hasActiveFund, access?.invoiceEnabled]);
+  /** Preselect the settlement system the account already uses. */
+  const availableModes: ContainerSettlementMode[] = access
+    ? SETTLEMENT_MODES.filter((mode) =>
+        mode === "invoice"
+          ? access.invoiceEnabled
+          : mode === "business_fund"
+            ? access.hasActiveFund
+            : access.hasTokenWallet,
+      )
+    : [];
 
-  const canCreate = Boolean(access?.canCreate ?? access?.canWrite ?? access?.allowed);
+  useEffect(() => {
+    if (!availableModes.length) return;
+    const first = availableModes[0] ?? null;
+    setSettlementMode((current) => (current && availableModes.includes(current) ? current : first));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when availability changes
+  }, [access?.invoiceEnabled, access?.hasActiveFund, access?.hasTokenWallet]);
+
+  const canCreate = Boolean(access?.canCreate);
+
+  const settlementLabel = (mode: ContainerSettlementMode) =>
+    mode === "balance"
+      ? t("containerSettlementBalance")
+      : mode === "invoice"
+        ? t("containerSettlementInvoice")
+        : mode === "business_fund"
+          ? t("containerSettlementFund")
+          : t("containerSettlementWallet");
 
   const createProject = async () => {
+    if (!settlementMode) return;
     setSubmitting(true);
     try {
-      const res = await api.container.createProject({
+      const res = await api.pods.createProject({
         name: name.trim(),
         description: description.trim() || undefined,
-        providerId,
+        providerId: providerId || undefined,
         settlementMode,
       });
       const id = res.project?.id;
@@ -102,6 +143,8 @@ export function ContainerScreen() {
     return null;
   }
 
+  const wallet = access?.wallet ?? null;
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 py-4 page-fullwidth">
       <div className="flex items-start justify-between gap-3">
@@ -109,7 +152,7 @@ export function ContainerScreen() {
           <h1 className="text-2xl font-semibold text-(--text-primary)">{t("containerTitle")}</h1>
           <p className="text-sm text-(--text-muted)">{t("containerIntro")}</p>
         </div>
-        {canCreate ? (
+        {canCreate && availableModes.length > 0 ? (
           <button
             type="button"
             onClick={() => setWizardOpen(true)}
@@ -121,6 +164,40 @@ export function ContainerScreen() {
           </button>
         ) : null}
       </div>
+
+      {wallet ? (
+        <div className="glass space-y-1 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs uppercase tracking-wider text-(--text-muted)">
+              {t("containerTokenWallet")}
+            </p>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                wallet.exhausted
+                  ? "bg-red-500/10 text-red-500"
+                  : wallet.negative
+                    ? "bg-amber-500/10 text-amber-500"
+                    : "bg-emerald-500/10 text-emerald-500",
+              )}
+            >
+              {wallet.exhausted
+                ? t("containerWalletExhausted")
+                : wallet.negative
+                  ? t("containerWalletNegative")
+                  : t("containerWalletHealthy")}
+            </span>
+          </div>
+          <p className="text-lg font-semibold text-(--text-primary)">
+            {formatTokens(wallet.balanceTokens, lang)}{" "}
+            <span className="text-xs font-normal text-(--text-muted)">{t("containerTokens")}</span>
+          </p>
+          <p className="text-xs text-(--text-muted)">
+            {t("containerCreditLimit")}: {formatTokens(wallet.creditLimitTokens, lang)} ·{" "}
+            {t("containerRemaining")}: {formatTokens(wallet.remainingTokens, lang)}
+          </p>
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="space-y-3">
@@ -134,7 +211,9 @@ export function ContainerScreen() {
         <div className="space-y-3">
           {!canCreate ? <BillingGate onOpenBusiness={() => navigate({ name: "business" })} /> : null}
           {projects.length === 0 && canCreate ? (
-            <div className="glass p-6 text-center text-sm text-(--text-muted)">{t("containerNoProjects")}</div>
+            <div className="glass p-6 text-center text-sm text-(--text-muted)">
+              {t("containerNoProjects")}
+            </div>
           ) : (
             projects.map((project) => (
               <button
@@ -156,7 +235,13 @@ export function ContainerScreen() {
                     ) : null}
                   </div>
                   <p className="mt-1 text-xs text-(--text-muted)">
-                    {project.workloadCount} {t("containerWorkloads")} · {project.networkCount} {t("containerNetworks")}
+                    {project.workloadCount} {t("containerPods")} · {project.networkCount}{" "}
+                    {t("containerNetworks")} · {project.volumeCount} {t("containerVolumes")} ·{" "}
+                    {project.ipCount} {t("containerAddresses")}
+                  </p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-(--text-muted)">
+                    {settlementLabel(project.settlementMode)}
+                    {project.regionCode ? ` · ${project.regionCode}` : ""}
                   </p>
                 </div>
               </button>
@@ -215,33 +300,32 @@ export function ContainerScreen() {
         </fieldset>
         <fieldset className="space-y-2">
           <legend className="text-xs font-medium text-(--text-secondary)">{t("containerSettlement")} *</legend>
-          {access?.invoiceEnabled ? (
+          {availableModes.map((mode) => (
             <button
+              key={mode}
               type="button"
-              onClick={() => setSettlementMode("invoice")}
+              onClick={() => setSettlementMode(mode)}
               className={cn(
-                "flex min-h-11 w-full items-center rounded-xl border px-3 py-2 text-left text-sm",
-                settlementMode === "invoice"
+                "flex min-h-11 w-full flex-col items-start rounded-xl border px-3 py-2 text-left text-sm",
+                settlementMode === mode
                   ? "border-(--brand-primary) bg-(--brand-primary)/10 text-(--brand-primary)"
                   : "border-border text-(--text-secondary)",
               )}
             >
-              {t("containerSettlementInvoice")}
+              <span>{settlementLabel(mode)}</span>
+              <span className="text-[10px] text-(--text-muted)">
+                {mode === "balance"
+                  ? t("containerSettlementBalanceHint")
+                  : mode === "token_wallet"
+                    ? t("containerSettlementWalletHint")
+                    : mode === "business_fund"
+                      ? t("containerSettlementFundHint")
+                      : t("containerSettlementInvoiceHint")}
+              </span>
             </button>
-          ) : null}
-          {access?.hasActiveFund ? (
-            <button
-              type="button"
-              onClick={() => setSettlementMode("business_fund")}
-              className={cn(
-                "flex min-h-11 w-full items-center rounded-xl border px-3 py-2 text-left text-sm",
-                settlementMode === "business_fund"
-                  ? "border-(--brand-primary) bg-(--brand-primary)/10 text-(--brand-primary)"
-                  : "border-border text-(--text-secondary)",
-              )}
-            >
-              {t("containerSettlementFund")}
-            </button>
+          ))}
+          {availableModes.length === 0 ? (
+            <p className="text-sm text-(--text-muted)">{t("containerNoSettlementMode")}</p>
           ) : null}
         </fieldset>
         <div className="flex justify-end gap-2">
@@ -255,7 +339,7 @@ export function ContainerScreen() {
           <button
             type="button"
             onClick={() => void createProject()}
-            disabled={submitting || !name.trim() || !providerId || (!access?.invoiceEnabled && !access?.hasActiveFund)}
+            disabled={submitting || !name.trim() || !settlementMode}
             className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -272,7 +356,11 @@ function BillingGate({ onOpenBusiness }: { onOpenBusiness: () => void }) {
   return (
     <div className="glass space-y-3 p-6">
       <p className="text-sm text-(--text-secondary)">{t("containerBillingRequired")}</p>
-      <button type="button" onClick={onOpenBusiness} className="btn-primary inline-flex rounded-xl px-4 py-2 text-sm font-semibold">
+      <button
+        type="button"
+        onClick={onOpenBusiness}
+        className="btn-primary inline-flex rounded-xl px-4 py-2 text-sm font-semibold"
+      >
         {t("containerOpenBusiness")}
       </button>
     </div>

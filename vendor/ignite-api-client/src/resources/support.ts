@@ -51,6 +51,25 @@ export class SupportResource extends ResourceClient {
     return this.get<KnowledgeBaseResponse>("/knowledge-base", { lang });
   }
 
+  /**
+   * Review prompts the customer should see on the dashboard right now
+   * (`GET /feedback/prompts`): `{ enabled, queue }`, newest object first and
+   * capped by the theme's queue size.
+   * @throws {import("../errors.js").ApiError} `unauthenticated`
+   */
+  reviewPrompts() {
+    return this.get<SuccessResponse & { enabled?: boolean; queue?: unknown[] }>("/feedback/prompts");
+  }
+
+  /**
+   * Never ask for a review of this object again (`POST /feedback/prompts/dismiss`).
+   * Pass exactly one of `ticketId` / `serviceId`.
+   * @throws {import("../errors.js").ApiError} `feedbackExactlyOneLink`, `ticketNotFoundOrNotOwnedByYou`, `serviceNotFoundOrDoesNotBelongToUser`, `unauthenticated`
+   */
+  dismissReviewPrompt(body: { ticketId?: string; serviceId?: string }) {
+    return this.post<SuccessResponse>("/feedback/prompts/dismiss", body);
+  }
+
   // <generated-openapi>
   /**
    * @generated GET /feedback

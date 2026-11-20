@@ -2,47 +2,53 @@ import { resolveCaughtApiError } from "../api/resolve-caught-error";
 import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-import type { ContainerProjectAccess, ContainerWorkloadDetail } from "../api/container";
+import type { ContainerPod, ContainerProjectAccess } from "../api/pods";
 import { useAuth } from "../components/AuthProvider";
 import { useRouter } from "../components/Router";
 import { useToast } from "../components/Toast";
 import { useI18n } from "../i18n";
 import { api } from "../lib/api";
+import { cn } from "../lib/utils";
 
 function isBusinessAccount(accountType?: string | null) {
   return ["business", "BUSINESS"].includes(accountType ?? "");
 }
 
-type Tab = "overview" | "logs" | "deploy";
+type Tab = "overview" | "logs" | "limits";
 
-export function ContainerWorkloadScreen({ projectId, workloadId }: { projectId: string; workloadId: string }) {
-  const { t, lang } = useI18n();
+/**
+ * One pod: live state, the power actions the caller may run, the log tail and
+ * the resource limits. Revisions, traffic split and the file manager stay on the
+ * web console — this screen is the on-call surface.
+ */
+export function ContainerPodScreen({ projectId, podId }: { projectId: string; podId: string }) {
+  const { t } = useI18n();
   const { user, isLoading: authLoading } = useAuth();
   const { navigate } = useRouter();
   const { show } = useToast();
 
-  const [workload, setWorkload] = useState<ContainerWorkloadDetail | null>(null);
+  const [pod, setPod] = useState<ContainerPod | null>(null);
   const [access, setAccess] = useState<ContainerProjectAccess>({ isOwner: false, permissions: [] });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
   const [busy, setBusy] = useState(false);
-  const [logs, setLogs] = useState("");
+  const [logs, setLogs] = useState<string[]>([]);
 
   const can = (permission: string) => access.isOwner || access.permissions.includes(permission);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const body = await api.container.getWorkload(workloadId);
-      setWorkload(body.workload);
+      const body = await api.pods.getPod(podId);
+      setPod(body.pod);
       setAccess(body.access ?? { isOwner: false, permissions: [] });
     } catch (err) {
       show(resolveCaughtApiError(err, t, "containerWorkloadMissing"), "error");
-      setWorkload(null);
+      setPod(null);
     } finally {
       setLoading(false);
     }
-  }, [show, t, workloadId]);
+  }, [show, t, podId]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -53,10 +59,10 @@ export function ContainerWorkloadScreen({ projectId, workloadId }: { projectId: 
     void load();
   }, [authLoading, load, navigate, user?.accountType]);
 
-  const runAction = async (action: "start" | "stop" | "deploy") => {
+  const runAction = async (action: "start" | "stop" | "restart" | "reinstall") => {
     setBusy(true);
     try {
-      await api.container.workloadAction(workloadId, action);
+      await api.pods.podAction(podId, action);
       show(t("containerActionDone"), "success");
       await load();
     } catch (err) {
@@ -69,10 +75,10 @@ export function ContainerWorkloadScreen({ projectId, workloadId }: { projectId: 
   const loadLogs = async () => {
     setBusy(true);
     try {
-      const body = await api.container.workloadLogs(workloadId);
-      setLogs(body.logs || body.notice || t("containerNoLogs"));
+      const body = await api.pods.podLogs(podId);
+      setLogs(body.lines ?? []);
     } catch (err) {
-      setLogs(resolveCaughtApiError(err, t, "containerNoLogs"));
+      setLogs([resolveCaughtApiError(err, t, "containerNoLogs")]);
     } finally {
       setBusy(false);
     }
@@ -80,34 +86,26 @@ export function ContainerWorkloadScreen({ projectId, workloadId }: { projectId: 
 
   useEffect(() => {
     if (tab === "logs") void loadLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload logs when the tab is opened
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when the tab opens
   }, [tab]);
 
   const tabs: Array<{ id: Tab; label: string }> = [
     { id: "overview", label: t("containerTabOverview") },
     { id: "logs", label: t("containerTabLogs") },
-    ...(can("deploy") ? [{ id: "deploy" as const, label: t("containerTabDeploy") }] : []),
+    { id: "limits", label: t("containerLimits") },
   ];
-
-  const unbilled =
-    workload && workload.unbilledEuros > 0
-      ? new Intl.NumberFormat(lang === "de" ? "de-DE" : "en-GB", {
-          style: "currency",
-          currency: "EUR",
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(workload.unbilledEuros)
-      : null;
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 py-4 page-fullwidth">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-semibold text-(--text-primary)">
-            {workload?.name || t("containerWorkloads")}
+            {pod?.name || t("containerPods")}
           </h1>
           <p className="text-sm text-(--text-muted)">
-            {workload ? `${workload.kind} · ${workload.status}` : t("containerLoading")}
+            {pod
+              ? `${pod.templateSlug ?? pod.image ?? "—"} · ${pod.state}`
+              : t("containerLoading")}
           </p>
         </div>
         <button
@@ -125,11 +123,12 @@ export function ContainerWorkloadScreen({ projectId, workloadId }: { projectId: 
             key={item.id}
             type="button"
             onClick={() => setTab(item.id)}
-            className={
+            className={cn(
+              "min-h-11 shrink-0 rounded-xl px-3 py-2 text-sm",
               tab === item.id
-                ? "rounded-xl bg-primary/10 px-3 py-2 text-sm font-medium text-primary"
-                : "rounded-xl px-3 py-2 text-sm text-(--text-secondary)"
-            }
+                ? "bg-primary/10 font-medium text-primary"
+                : "text-(--text-secondary)",
+            )}
           >
             {item.label}
           </button>
@@ -141,20 +140,20 @@ export function ContainerWorkloadScreen({ projectId, workloadId }: { projectId: 
       ) : tab === "overview" ? (
         <section className="glass space-y-3 p-4">
           <p className="text-sm text-(--text-secondary)">
-            {t("containerAppName")}: <span className="text-(--text-primary)">{workload?.appName || t("na")}</span>
+            {t("containerStatus")}:{" "}
+            <span className="text-(--text-primary)">{pod?.state ?? t("na")}</span>
           </p>
-          {unbilled ? (
-            <p className="text-sm text-(--text-secondary)">
-              {t("containerUnbilled")}: <span className="text-(--text-primary)">{unbilled}</span>
-            </p>
+          {pod?.suspended ? (
+            <p className="text-xs text-amber-500">{t("containerWalletNegative")}</p>
           ) : null}
+          {pod?.lastError ? <p className="text-xs text-red-500">{pod.lastError}</p> : null}
           <div className="flex flex-wrap gap-2">
             {can("start") ? (
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => void runAction("start")}
-                className="btn-primary min-h-11 rounded-xl px-4 text-sm disabled:opacity-50"
+                className="btn-primary inline-flex min-h-11 items-center rounded-xl px-4 text-sm disabled:opacity-50"
               >
                 {busy ? <Loader2 className="size-4 animate-spin" /> : t("containerStart")}
               </button>
@@ -169,25 +168,65 @@ export function ContainerWorkloadScreen({ projectId, workloadId }: { projectId: 
                 {t("containerStop")}
               </button>
             ) : null}
+            {can("restart") ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void runAction("restart")}
+                className="btn-secondary min-h-11 rounded-xl px-4 text-sm disabled:opacity-50"
+              >
+                {t("containerRestart")}
+              </button>
+            ) : null}
+            {can("pods_lifecycle") ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void runAction("reinstall")}
+                className="btn-secondary min-h-11 rounded-xl px-4 text-sm disabled:opacity-50"
+              >
+                {t("containerRedeploy")}
+              </button>
+            ) : null}
           </div>
         </section>
       ) : tab === "logs" ? (
         <pre className="glass max-h-[60vh] overflow-auto p-4 text-xs text-(--text-secondary)">
-          {logs || t("containerNoLogs")}
+          {logs.length > 0 ? logs.join("\n") : t("containerNoLogs")}
         </pre>
       ) : (
-        <section className="glass space-y-3 p-4">
-          <p className="text-sm text-(--text-secondary)">{t("containerDeployHint")}</p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void runAction("deploy")}
-            className="btn-primary min-h-11 rounded-xl px-4 text-sm disabled:opacity-50"
-          >
-            {busy ? <Loader2 className="size-4 animate-spin" /> : t("containerDeploy")}
-          </button>
+        <section className="glass space-y-2 p-4">
+          {/* 0 = no own limit (see createPod): say so instead of "0 MB". */}
+          <LimitRow
+            label={t("containerCpu")}
+            value={
+              (pod?.limits.cpuMillis ?? 0) > 0 ? `${pod?.limits.cpuMillis} mCPU` : t("containerNoLimit")
+            }
+          />
+          <LimitRow
+            label={t("containerMemory")}
+            value={
+              (pod?.limits.memoryMb ?? 0) > 0 ? `${pod?.limits.memoryMb} MB` : t("containerNoLimit")
+            }
+          />
+          <LimitRow
+            label={t("containerDisk")}
+            value={(pod?.limits.diskMb ?? 0) > 0 ? `${pod?.limits.diskMb} MB` : t("containerNoLimit")}
+          />
+          <LimitRow label="swap" value={`${pod?.limits.swapMb ?? 0} MB`} />
+          <LimitRow label="io_weight" value={String(pod?.limits.ioWeight ?? 0)} />
+          <LimitRow label="pids_limit" value={String(pod?.limits.pidsLimit ?? 0)} />
         </section>
       )}
+    </div>
+  );
+}
+
+function LimitRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2 text-sm">
+      <span className="text-(--text-muted)">{label}</span>
+      <span className="text-(--text-primary)">{value}</span>
     </div>
   );
 }

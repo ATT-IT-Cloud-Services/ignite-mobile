@@ -7,6 +7,7 @@ import { ENJYN_LINK_SESSION_TTL_MS } from "../../../api/id-verification";
 import { useToast } from "../../../components/Toast";
 import { useI18n } from "../../../i18n";
 import { api } from "../../../lib/api";
+import { resolveAddressLabel } from "../../../lib/address-label";
 import { ensureCameraPermission } from "../../../lib/camera-permission";
 import { openHostedFlow } from "../../../lib/hosted-flow";
 
@@ -695,7 +696,8 @@ export function IdVerificationFlow({
               >
                 {addresses.map((addr) => (
                   <option key={addr.id} value={addr.id}>
-                    {addr.label || addr.street} — {addr.street}, {addr.zip} {addr.city}
+                    {resolveAddressLabel(addr.label, t("addressLabelRegistration"), addr.street)} —{" "}
+                    {addr.street}, {addr.zip} {addr.city}
                   </option>
                 ))}
               </select>

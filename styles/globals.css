@@ -529,14 +529,16 @@ html.light .theme-logo-light {
   to   { opacity: 1; }
 }
 
+/* The panel fades in at its final position on purpose: a scaling or sliding
+   entrance moves the header under the pointer, so a click meant for a header action
+   lands on the tab bar that slides into that spot (observed in the admin product
+   dialog). Opacity keeps every target where the operator sees it. */
 @keyframes modalPanelIn {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(8px);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
   }
 }
 
@@ -549,6 +551,14 @@ html.light .theme-logo-light {
   border-radius: var(--radius-surface);
   box-shadow: var(--shadow-lg);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-modal-panel,
+  .animate-modal-backdrop {
+    animation: none;
+  }
+}
+
 
 /* Toast animations */
 @keyframes slideIn {

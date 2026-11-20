@@ -1,6 +1,11 @@
 import { ResourceClient } from "../resource-client.js";
 import type { QueryParams } from "../types.js";
-import type { ApiKey, AuditLogEntry, SupportPinResponse } from "../schemas/user.js";
+import type {
+  ApiKey,
+  AuditLogEntry,
+  McpCredential,
+  SupportPinResponse,
+} from "../schemas/user.js";
 import type { SuccessResponse } from "../schemas/common.js";
 
 export class UserResource extends ResourceClient {
@@ -53,6 +58,40 @@ export class UserResource extends ResourceClient {
    */
   revokeApiKey(id: string) {
     return this.del<SuccessResponse>("/api-keys", { id });
+  }
+
+  /**
+   * List MCP credentials (last use + distinct requesting IPs).
+   * @throws {import("../errors.js").ApiError} `unauthenticated`
+   */
+  mcpCredentials(page = 1, pageSize = 50) {
+    return this.get<
+      SuccessResponse & {
+        mcpCredentials: McpCredential[];
+        total?: number;
+        maxMcpCredentials?: number;
+      }
+    >("/mcp-credentials", { page, pageSize });
+  }
+
+  /**
+   * Create an MCP credential. The token in the response is shown only once.
+   * @throws {import("../errors.js").ApiError} `nameIsRequired`, `unauthenticated`
+   */
+  createMcpCredential(name: string, scopes: string[] = ["read"], expiresInDays?: number) {
+    return this.post<SuccessResponse & { mcpCredential: McpCredential }>("/mcp-credentials", {
+      name,
+      scopes,
+      ...(expiresInDays ? { expiresInDays } : {}),
+    });
+  }
+
+  /**
+   * Revoke an MCP credential.
+   * @throws {import("../errors.js").ApiError} `apiKeyNotFound2`, `unauthenticated`
+   */
+  revokeMcpCredential(id: string) {
+    return this.del<SuccessResponse>("/mcp-credentials", { id });
   }
 
   /**

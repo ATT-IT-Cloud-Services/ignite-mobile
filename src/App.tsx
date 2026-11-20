@@ -30,7 +30,7 @@ import { WalletScreen, InvoicePayScreen, InvoiceDetailScreen } from './features/
 import { BusinessScreen } from './screens/BusinessScreen';
 import { ContainerScreen } from './screens/ContainerScreen';
 import { ContainerProjectScreen } from './screens/ContainerProjectScreen';
-import { ContainerWorkloadScreen } from './screens/ContainerWorkloadScreen';
+import { ContainerPodScreen } from './screens/ContainerPodScreen';
 import { ConsoleScreen } from './screens/ConsoleScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { PlusScreen } from './screens/PlusScreen';
@@ -337,8 +337,8 @@ function AuthenticatedShell() {
               {route.name === "business" && <BusinessScreen />}
               {route.name === "container" && <ContainerScreen />}
               {route.name === "container-project" && <ContainerProjectScreen id={route.id} />}
-              {route.name === "container-workload" && (
-                <ContainerWorkloadScreen projectId={route.projectId} workloadId={route.workloadId} />
+              {route.name === "container-pod" && (
+                <ContainerPodScreen projectId={route.projectId} podId={route.podId} />
               )}
               {route.name === "family" && <FamilyScreen />}
               {route.name === "vroute" && (

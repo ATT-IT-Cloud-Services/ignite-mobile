@@ -112,7 +112,7 @@ export function ByoasScreen() {
         <div>
           <h1 className="text-2xl font-semibold text-(--text-primary)">BYOAS (eigene ASN)</h1>
           <p className="text-sm text-(--text-muted)">
-            Eigene ASN anfragen, freigeben lassen und anzukündigende Netze mit LOA einreichen.
+            {t("byoasIntro")}
           </p>
         </div>
         <button type="button" onClick={() => void load()} className="glass rounded-xl p-2" aria-label="Neu laden">
@@ -124,7 +124,7 @@ export function ByoasScreen() {
 
       {policy && !policy.enabled && (
         <div className="glass rounded-xl p-4 text-sm text-(--text-muted)">
-          BYOAS ist für Ihr Konto nicht verfügbar.
+          {t("byoasUnavailable")}
         </div>
       )}
 
@@ -177,7 +177,7 @@ export function ByoasScreen() {
                   onClick={() => setLegalFor(application)}
                   className="text-xs font-medium text-(--brand-primary) hover:underline"
                 >
-                  Rechtstext akzeptieren und unterschreiben
+                  {t("byoasAcceptTermsTitle")}
                 </button>
               )}
 
@@ -187,7 +187,7 @@ export function ByoasScreen() {
                   onClick={() => setNetworkFor(application)}
                   className="text-xs font-medium text-(--brand-primary) hover:underline"
                 >
-                  Netz hinzufügen (LOA)
+                  {t("byoasAddNetworkWithLoa")}
                 </button>
               )}
 
@@ -207,22 +207,19 @@ export function ByoasScreen() {
       </div>
 
       {legalFor && (
-        <AppModal open onClose={() => setLegalFor(null)} closeAriaLabel="Schließen">
-          <h3 className="mb-3 text-lg font-semibold text-(--text-primary)">Rechtstext akzeptieren</h3>
+        <AppModal open onClose={() => setLegalFor(null)} closeAriaLabel={t("close")}>
+          <h3 className="mb-3 text-lg font-semibold text-(--text-primary)">{t("byoasAcceptTerms")}</h3>
           <div className="space-y-3">
-            <p className="text-sm text-(--text-muted)">
-              Mit der Eingabe Ihres Namens bestätigen Sie den Rechtstext und erteilen die Freigabe zur Ankündigung
-              Ihrer ASN. Es wird ein signiertes PDF erstellt.
-            </p>
+            <p className="text-sm text-(--text-muted)">{t("byoasSignatureHint")}</p>
             <input
               value={signerName}
               onChange={(e) => setSignerName(e.target.value)}
-              placeholder="Vollständiger Name"
+              placeholder={t("byoasFullNamePlaceholder")}
               className="glass w-full rounded-control border border-(--border) px-3 py-2 text-sm"
             />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setLegalFor(null)} className="glass rounded-xl px-4 py-2 text-sm">
-                Abbrechen
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -239,10 +236,10 @@ export function ByoasScreen() {
 
       {networkFor && (
         <AppModal open onClose={() => setNetworkFor(null)} closeAriaLabel="Schließen">
-          <h3 className="mb-3 text-lg font-semibold text-(--text-primary)">Netz hinzufügen</h3>
+          <h3 className="mb-3 text-lg font-semibold text-(--text-primary)">{t("byoasAddNetwork")}</h3>
           <div className="space-y-3">
             <p className="text-sm text-(--text-muted)">
-              IPv4 höchstens /24, IPv6 höchstens /48. Laden Sie pro Netz eine LOA hoch.
+              {t("byoasNetworkLimitsHint")}
             </p>
             <input
               value={prefix}

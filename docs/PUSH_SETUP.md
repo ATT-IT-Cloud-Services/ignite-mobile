@@ -24,7 +24,7 @@ Android needs `google-services.json` for FCM. iOS uses APNs only — no Firebase
 
 Configure the provider credentials per tenant in the admin UI under **Push & App** (`/push-app`). They are stored encrypted in the `systemSettings` table (`push.*`) and take effect immediately:
 
-- **Firebase Cloud Messaging (Android):** paste the service account JSON from section 1.4. The `private_key` inside the JSON may be base64 (Dokploy-safe) or PEM with `\n` escapes.
+- **Firebase Cloud Messaging (Android):** paste the service account JSON from section 1.4. The `private_key` inside the JSON may be base64 (safe for an env file) or PEM with `\n` escapes.
 - **Apple Push (APNs, iOS):** key ID, team ID, bundle ID (`app.elizon.ignite.mobile`) and the `.p8` private key. Prefer base64 (one line); raw PEM newlines are also accepted. Enable **Production environment** for `api.push.apple.com` (otherwise `api.sandbox.push.apple.com`).
 - **Web push (browser dashboard, not Electron):** the VAPID contact email. Saving generates new VAPID keys, so existing browser subscriptions must be reconnected.
 

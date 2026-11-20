@@ -37,7 +37,7 @@ export type Route =
   | { name: "business" }
   | { name: "container" }
   | { name: "container-project"; id: string }
-  | { name: "container-workload"; projectId: string; workloadId: string }
+  | { name: "container-pod"; projectId: string; podId: string }
   | { name: "family" }
   | { name: "vroute" }
   | { name: "console"; id: string }

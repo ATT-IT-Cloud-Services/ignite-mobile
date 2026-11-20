@@ -212,6 +212,17 @@ export async function validateConfiguredNewItem(
   }
 }
 
+function keepsExtraAddresses(product: ShopProductDetail): boolean {
+  const type = String(product.provider?.type || "").toUpperCase();
+  const caps = product.providerCapabilities;
+  // A masked cloud product without a capability set is not a local guest.
+  if (!caps) return type !== "CLOUD";
+  const canAdd = caps.canAddIp;
+  const max4 = typeof caps.maxIPv4 === "number" ? caps.maxIPv4 : 0;
+  const max6 = typeof caps.maxIPv6 === "number" ? caps.maxIPv6 : 0;
+  return !(canAdd === false && max4 === 0 && max6 === 0);
+}
+
 export function buildConfiguredCartItem(args: {
   product: ShopProductDetail;
   options: ProductProviderOptions & { billingCycle?: number; minNetworkMBs?: number };
@@ -225,6 +236,7 @@ export function buildConfiguredCartItem(args: {
   contractTermMonths?: number;
 }): Omit<CartItem, "lineId"> {
   const { product, options, priceMonthly, categoryId, categoryName, usesMb, upgradeConfig } = args;
+  const keepExtraAddresses = keepsExtraAddresses(product);
   const billingCycle = args.billingCycle ?? options.billingCycle ?? 30;
   const configured = buildCustomizationPayload(product, options, usesMb, upgradeConfig);
 
@@ -244,8 +256,10 @@ export function buildConfiguredCartItem(args: {
     ...(args.contractTermMonths != null ? { contractTermMonths: args.contractTermMonths } : {}),
     ...(options.selectedLocationId ? { locationId: options.selectedLocationId } : {}),
     ...(options.selectedTemplateId != null ? { templateId: options.selectedTemplateId } : {}),
-    ...(options.additionalIPv4 > 0 ? { additionalIPv4: options.additionalIPv4 } : {}),
-    ...(options.additionalIPv6 > 0 ? { additionalIPv6: options.additionalIPv6 } : {}),
+    allowsExtraAddresses: keepExtraAddresses,
+    providerType: product.provider?.type,
+    ...(keepExtraAddresses && options.additionalIPv4 > 0 ? { additionalIPv4: options.additionalIPv4 } : {}),
+    ...(keepExtraAddresses && options.additionalIPv6 > 0 ? { additionalIPv6: options.additionalIPv6 } : {}),
     ...(!options.includeIPv4 ? { includeIPv4: false } : {}),
     ...(!options.includeIPv6 ? { includeIPv6: false } : {}),
     ...(options.sshKeyIds?.length ? { sshKeyIds: options.sshKeyIds } : {}),
@@ -282,8 +296,31 @@ export function buildProductCartItem(args: {
   return buildConfiguredCartItem({ ...args, usesMb });
 }
 
+const LOCAL_EXTRA_ADDRESS_TYPES = new Set([
+  "PROXMOX",
+  "PTERODACTYL",
+  "MAILCOW",
+  "PLOI",
+  "PLESK",
+  "PROXMOX_BS",
+  "IGNITE_CONTAINERS",
+  "CUSTOM",
+  "DOMAIN",
+  "COLOCATION",
+]);
+
+function payloadKeepsExtraAddresses(item: CartItem): boolean {
+  if (item.allowsExtraAddresses === false) return false;
+  const type = String(item.providerType || "").toUpperCase();
+  // A missing type or a masked cloud product is not a local guest.
+  // A crafted allowsExtraAddresses flag cannot override that.
+  if (!type || type === "CLOUD" || !LOCAL_EXTRA_ADDRESS_TYPES.has(type)) return false;
+  return true;
+}
+
 /** Serialize cart item for /api/cart/calculate and /api/checkout. */
 export function cartItemToApiPayload(item: CartItem): Record<string, unknown> {
+  const keepExtraAddresses = payloadKeepsExtraAddresses(item);
   const itemType = item.itemType ?? "new";
   return {
     lineId: item.lineId,
@@ -308,8 +345,8 @@ export function cartItemToApiPayload(item: CartItem): Record<string, unknown> {
       : {}),
     ...(item.locationId ? { locationId: item.locationId } : {}),
     ...(item.templateId != null ? { templateId: item.templateId } : {}),
-    ...(item.additionalIPv4 != null ? { additionalIPv4: item.additionalIPv4 } : {}),
-    ...(item.additionalIPv6 != null ? { additionalIPv6: item.additionalIPv6 } : {}),
+    ...(keepExtraAddresses && item.additionalIPv4 != null ? { additionalIPv4: item.additionalIPv4 } : {}),
+    ...(keepExtraAddresses && item.additionalIPv6 != null ? { additionalIPv6: item.additionalIPv6 } : {}),
     ...(item.includeIPv4 === false ? { includeIPv4: false } : {}),
     ...(item.includeIPv6 === false ? { includeIPv6: false } : {}),
     ...(item.sshKeyIds?.length ? { sshKeyIds: item.sshKeyIds } : {}),

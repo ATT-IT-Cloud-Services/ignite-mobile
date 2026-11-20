@@ -38,6 +38,10 @@ export type CartItem = {
   templateId?: number;
   additionalIPv4?: number;
   additionalIPv6?: number;
+  /** Local extra addresses. False for a resold product; omitted on older carts. */
+  allowsExtraAddresses?: boolean;
+  /** Used only to drop a crafted extra-address count. Not sent to the API. */
+  providerType?: string;
   includeIPv4?: boolean;
   includeIPv6?: boolean;
   sshKeyIds?: string[];
