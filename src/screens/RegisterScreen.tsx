@@ -9,6 +9,7 @@ import { RegisterProgress } from "../components/auth/register-progress";
 import { RegisterStepNav } from "../components/auth/register-step-nav";
 import { useRegister } from "../features/auth/use-register";
 import { isCompleteUnder16DateOfBirth } from "../lib/is-under-16-date-of-birth";
+import { earliestDateOfBirthIso } from "../lib/date-of-birth";
 
 type RegisterScreenProps = {
   onLogin: () => void;
@@ -301,6 +302,7 @@ function AccountDetailsStep({ vm }: { vm: Vm }) {
             vm.clearFieldError("dateOfBirth");
           }}
           max={new Date().toISOString().split("T")[0]}
+          min={earliestDateOfBirthIso()}
           error={vm.fieldErrors.dateOfBirth}
           autoComplete="bday"
           required

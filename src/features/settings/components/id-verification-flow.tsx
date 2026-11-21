@@ -9,6 +9,7 @@ import { useI18n } from "../../../i18n";
 import { api } from "../../../lib/api";
 import { resolveAddressLabel } from "../../../lib/address-label";
 import { ensureCameraPermission } from "../../../lib/camera-permission";
+import { earliestDateOfBirthIso } from "../../../lib/date-of-birth";
 import { openHostedFlow } from "../../../lib/hosted-flow";
 
 type Address = IdVerificationAddress;
@@ -667,6 +668,7 @@ export function IdVerificationFlow({
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
+              min={earliestDateOfBirthIso()}
               disabled={!status?.dobCorrectionAvailable && Boolean(status?.user?.dobCorrectionUsedAt)}
               className="w-full rounded-xl border border-border bg-white/5 px-4 py-2.5 text-sm focus:border-primary focus:outline-none disabled:opacity-60"
             />

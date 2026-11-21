@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { resolveApiError } from "../../api/resolve-error";
+import { isDateOfBirthTooOld } from "../../lib/date-of-birth";
 import { api } from "../../lib/api";
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../components/AuthProvider";
@@ -19,6 +20,16 @@ export type RegistrationStatus = {
   allowRegistration: boolean;
   allowRegistrationPrivate: boolean;
   allowRegistrationBusiness: boolean;
+};
+
+/**
+ * Registration error codes that belong to a single form field. Every other
+ * code stays on the email field (historical catch-all, see `handleSubmit`).
+ */
+const API_ERROR_FIELD: Record<string, string> = {
+  invalidDateOfBirth: "dateOfBirth",
+  dateOfBirthCannotBeInTheFuture: "dateOfBirth",
+  invalidDateOfBirthFormatUseYyyyMmDd: "dateOfBirth",
 };
 
 export type RegisterPayload = {
@@ -178,6 +189,10 @@ export function useRegister(onSuccess: () => void) {
     if (pwError) err.password = pwError;
     if (!dateOfBirth || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
       err.dateOfBirth = t("authFieldRequired");
+    } else if (new Date(`${dateOfBirth}T00:00:00.000Z`).getTime() > Date.now()) {
+      err.dateOfBirth = t("apiErrorDateOfBirthCannotBeInTheFuture");
+    } else if (isDateOfBirthTooOld(dateOfBirth)) {
+      err.dateOfBirth = t("apiErrorInvalidDateOfBirth");
     }
     if (Object.keys(err).length > 0) {
       setFieldErrors(err);
@@ -221,7 +236,10 @@ export function useRegister(onSuccess: () => void) {
         const msg =
           (result.error && errMap[result.error]) ||
           resolveApiError(result, t, { fallbackKey: "authRegisterError" });
-        setFieldErrors({ email: msg });
+        // Put field-bound codes (date of birth) on their own field instead of the
+        // email field, so the message and the highlighted input match.
+        const field = (result.error && API_ERROR_FIELD[result.error]) || "email";
+        setFieldErrors({ [field]: msg });
       }
     } catch {
       setFieldErrors({ email: t("authRegisterError") });

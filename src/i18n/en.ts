@@ -2130,6 +2130,7 @@ export const en = {
   businessAnchorDay: "Invoice anchor day",
   businessNoData: "No business data available.",
   // API error messages (synced from web)
+  apiErrorTransferAcceptanceRequired: "Please decide the contract takeover for this service first.",
   apiErrorContainerPriceChangeEmpty: "This announcement contains no change. Please pick at least one price or the rounding rule.",
   apiErrorContainerBackupKeepInvalid: "Please state how many backups are kept: 0 to {max}. 0 means unlimited.",
   apiErrorContainerBackupLimitReached: "This pod has reached its backup limit ({limit}). Delete a backup first or raise the limit in the project settings.",

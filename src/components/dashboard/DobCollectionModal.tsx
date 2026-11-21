@@ -5,6 +5,7 @@ import { useAuth } from "../AuthProvider";
 import { useI18n } from "../../i18n";
 import { useToast } from "../Toast";
 import { isCompleteUnder16DateOfBirth } from "../../lib/is-under-16-date-of-birth";
+import { earliestDateOfBirthIso } from "../../lib/date-of-birth";
 import { api } from "../../lib/api";
 
 type Props = {
@@ -59,6 +60,7 @@ export function DobCollectionModal({ onComplete }: Props) {
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
               max={new Date().toISOString().split("T")[0]}
+              min={earliestDateOfBirthIso()}
               required
               className="w-full rounded-control border border-border bg-(--bg-elevated) px-3 py-2 text-sm text-(--text-primary) focus:outline-none focus:ring-2 focus:ring-primary"
             />

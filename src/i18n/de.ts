@@ -2118,6 +2118,7 @@ export const de: Dict = {
   businessAnchorDay: "Rechnungsstichtag",
   businessNoData: "Keine Geschäftsdaten verfügbar.",
   // API error messages (synced from web)
+  apiErrorTransferAcceptanceRequired: "Bitte entscheiden Sie zuerst über die Vertragsübernahme für diesen Dienst.",
   apiErrorContainerPriceChangeEmpty: "Diese Ankündigung enthält keine Änderung. Bitte wählen Sie mindestens einen Preis oder die Rundungsregel.",
   apiErrorContainerBackupKeepInvalid: "Bitte geben Sie an, wie viele Backups behalten werden: 0 bis {max}. 0 bedeutet unbegrenzt.",
   apiErrorContainerBackupLimitReached: "Das Backup-Limit dieses Pods ist erreicht ({limit}). Löschen Sie zuerst ein Backup oder erhöhen Sie das Limit in den Projekteinstellungen.",

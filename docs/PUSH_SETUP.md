@@ -46,7 +46,7 @@ APNS_PRODUCTION=false
 # Web Push VAPID (browser dashboard, not Electron)
 WEB_PUSH_VAPID_PUBLIC_KEY=...
 WEB_PUSH_VAPID_PRIVATE_KEY=...
-WEB_PUSH_SUBJECT=mailto:support@elizon.app
+WEB_PUSH_SUBJECT=mailto:service@att-it.com
 ```
 
 ### Eligibility
