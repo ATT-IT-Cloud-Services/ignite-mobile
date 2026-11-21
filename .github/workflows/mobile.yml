@@ -23,7 +23,7 @@ env:
 jobs:
   web-build:
     name: Web bundle
-    runs-on: ubuntu-latest
+    runs-on: leaseweb
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -41,7 +41,7 @@ jobs:
   desktop-linux:
     name: Desktop Linux
     needs: web-build
-    runs-on: ubuntu-latest
+    runs-on: leaseweb
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -154,7 +154,7 @@ jobs:
   android:
     name: Android (debug APK)
     needs: web-build
-    runs-on: ubuntu-latest
+    runs-on: leaseweb
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -185,7 +185,7 @@ jobs:
     name: GitHub release
     needs: [web-build, desktop-linux, android, desktop-windows, desktop-macos]
     if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: leaseweb
     permissions:
       contents: write
     steps:
