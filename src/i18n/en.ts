@@ -2130,6 +2130,7 @@ export const en = {
   businessAnchorDay: "Invoice anchor day",
   businessNoData: "No business data available.",
   // API error messages (synced from web)
+  apiErrorTransferLegalConsentRequired: "Please confirm the current legal documents (terms, privacy, DPA) before accepting.",
   apiErrorDataExportAlreadyRunning: "A data export is already running. Please wait until it has finished.",
   apiErrorDataExportExpired: "The data export has expired. Please request a new one.",
   apiErrorDataExportNotFound: "The data export was not found.",

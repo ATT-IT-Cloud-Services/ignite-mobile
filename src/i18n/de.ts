@@ -2118,6 +2118,7 @@ export const de: Dict = {
   businessAnchorDay: "Rechnungsstichtag",
   businessNoData: "Keine Geschäftsdaten verfügbar.",
   // API error messages (synced from web)
+  apiErrorTransferLegalConsentRequired: "Bitte bestätigen Sie die aktuellen rechtlichen Dokumente (AGB, Datenschutz, AVV), bevor Sie annehmen.",
   apiErrorDataExportAlreadyRunning: "Es läuft bereits ein Datenexport. Bitte warten Sie, bis er abgeschlossen ist.",
   apiErrorDataExportExpired: "Der Datenexport ist abgelaufen. Bitte fordern Sie einen neuen an.",
   apiErrorDataExportNotFound: "Der Datenexport wurde nicht gefunden.",
