@@ -3917,6 +3917,8 @@ export const en = {
   containerUsageEmpty: "Nothing was consumed in the selected window.",
   containerMinimumCharge: "Minimum charge",
   containerPricePerTokens: "Price per 1,000 tokens",
+  containerPriceBuildHour: "Build time",
+  containerUnitPerBuildHour: "per build hour",
   apiErrorInvoiceBillingNotActive: "Invoice billing is not active",
   plusSubscribing: "Preparing…",
   plusActivate: "Activate {plusName}",

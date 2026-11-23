@@ -3905,6 +3905,8 @@ export const de: Dict = {
   containerUsageEmpty: "Im gewählten Zeitraum wurde nichts verbraucht.",
   containerMinimumCharge: "Mindestberechnung",
   containerPricePerTokens: "Preis je 1.000 Tokens",
+  containerPriceBuildHour: "Build-Zeit",
+  containerUnitPerBuildHour: "je Build-Stunde",
   apiErrorInvoiceBillingNotActive: "Zahlung auf Rechnung ist nicht aktiv",
   plusSubscribing: "Wird vorbereitet…",
   plusActivate: "{plusName} aktivieren",
