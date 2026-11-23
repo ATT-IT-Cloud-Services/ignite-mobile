@@ -3370,5 +3370,11 @@ export const LEGACY_TEXT_TO_CODE: Record<string, string> = {
   "The deletion confirmation is not available yet.": "dataSwitchReceiptNotReady",
   "containerCreditLimitReasonRequired": "containerCreditLimitReasonRequired",
   "Bitte geben Sie einen Grund für die Änderung des Kreditlimits an.": "containerCreditLimitReasonRequired",
-  "Please provide a reason for changing the credit limit.": "containerCreditLimitReasonRequired"
+  "Please provide a reason for changing the credit limit.": "containerCreditLimitReasonRequired",
+  "transferLegalConsentRequired": "transferLegalConsentRequired",
+  "Bitte bestätigen Sie die aktuellen rechtlichen Dokumente (AGB, Datenschutz, AVV), bevor Sie annehmen.": "transferLegalConsentRequired",
+  "Please confirm the current legal documents (terms, privacy, DPA) before accepting.": "transferLegalConsentRequired",
+  "providerGlobalReleaseNotSupported": "providerGlobalReleaseNotSupported",
+  "Dieser Anbietertyp lässt sich nicht global freigeben. Bitte weisen Sie ihn einem Mandanten zu.": "providerGlobalReleaseNotSupported",
+  "This provider type cannot be released globally. Assign it to a tenant instead.": "providerGlobalReleaseNotSupported"
 };

@@ -253,7 +253,7 @@ export class PodsResource extends ResourceClient {
   }
 
   projectUsage(id: string, window: "1h" | "24h" | "7d" | "30d" = "24h") {
-    return this.client.pods.projectUsage(id, { window }) as Promise<{
+    return this.client.pods.projectsUsage(id, { window }) as Promise<{
       success: boolean;
       summary: ContainerUsageSummary | null;
       snapshots: ContainerPodUsageSnapshot[];
@@ -273,7 +273,7 @@ export class PodsResource extends ResourceClient {
       autoStart?: boolean;
     },
   ) {
-    return this.client.pods.createPod(projectId, body) as Promise<{
+    return this.client.pods.postProjectsPods(projectId, body) as Promise<{
       success: boolean;
       workloadId?: string;
       icPodId?: string;
@@ -281,7 +281,7 @@ export class PodsResource extends ResourceClient {
   }
 
   getPod(id: string) {
-    return this.client.pods.pod(id) as Promise<{
+    return this.client.pods.find(id) as Promise<{
       success: boolean;
       pod: ContainerPod;
       access: ContainerProjectAccess;
@@ -289,14 +289,14 @@ export class PodsResource extends ResourceClient {
   }
 
   podAction(id: string, action: "start" | "stop" | "restart" | "reinstall") {
-    return this.client.pods.podActions(id, { action }) as Promise<{
+    return this.client.pods.postActions(id, { action }) as Promise<{
       success: boolean;
       state?: string;
     }>;
   }
 
   podLogs(id: string) {
-    return this.client.pods.getPodLogs(id, { lines: 200 }) as Promise<{
+    return this.client.pods.logs(id, { lines: 200 }) as Promise<{
       success: boolean;
       lines?: string[];
     }>;
@@ -370,7 +370,7 @@ export class PodsResource extends ResourceClient {
   }
 
   setReverseDns(addressId: string, ptr: string | null) {
-    return this.client.pods.patchIp(addressId, { action: "rdns", ptr }) as Promise<{
+    return this.client.pods.updateIps(addressId, { action: "rdns", ptr }) as Promise<{
       success: boolean;
       rdns?: string | null;
       status?: string;
@@ -378,7 +378,7 @@ export class PodsResource extends ResourceClient {
   }
 
   bindAddress(addressId: string, podId: string, primary = false) {
-    return this.client.pods.patchIp(addressId, {
+    return this.client.pods.updateIps(addressId, {
       action: "bind",
       workloadId: podId,
       primary,
@@ -386,14 +386,14 @@ export class PodsResource extends ResourceClient {
   }
 
   createPodPort(podId: string, body: { containerPort: number; exposure?: "public" | "internal" }) {
-    return this.client.pods.podPorts(podId, body) as Promise<{
+    return this.client.pods.postPorts(podId, body) as Promise<{
       success: boolean;
       portId?: string;
     }>;
   }
 
   createPodDomain(podId: string, body: { host: string; https?: boolean; targetPort?: number }) {
-    return this.client.pods.podDomains(podId, body) as Promise<{
+    return this.client.pods.postDomains(podId, body) as Promise<{
       success: boolean;
       domainId?: string;
     }>;
@@ -402,7 +402,7 @@ export class PodsResource extends ResourceClient {
   // ---- templates -------------------------------------------------------
 
   listTemplates(projectId: string) {
-    return this.client.pods.getProjectTemplates(projectId) as Promise<{
+    return this.client.pods.projectsTemplates(projectId) as Promise<{
       success: boolean;
       catalogue: ContainerTemplateOption[];
       custom: ContainerTemplateOption[];

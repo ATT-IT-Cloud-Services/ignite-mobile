@@ -228,6 +228,13 @@ export class PodsResource extends ResourceClient {
   }
 
   /**
+   * @generated GET /pods/[id]/revisions/[revisionId]/files
+   */
+  revisionsFiles(id: string, revisionId: string, query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/pods/${encodeURIComponent(id)}/revisions/${encodeURIComponent(revisionId)}/files`, query);
+  }
+
+  /**
    * @generated GET /pods/[id]/schedules
    */
   schedules(id: string, query?: QueryParams) {
@@ -246,6 +253,27 @@ export class PodsResource extends ResourceClient {
    */
   stats(id: string, query?: QueryParams) {
     return this.get<Record<string, unknown>>(`/pods/${encodeURIComponent(id)}/stats`, query);
+  }
+
+  /**
+   * @generated DELETE /pods/[id]/storage
+   */
+  deleteStorage(id: string, query?: QueryParams, body?: Record<string, unknown>) {
+    return this.del<Record<string, unknown>>(`/pods/${encodeURIComponent(id)}/storage`, query, body);
+  }
+
+  /**
+   * @generated GET /pods/[id]/storage
+   */
+  storage(id: string, query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/pods/${encodeURIComponent(id)}/storage`, query);
+  }
+
+  /**
+   * @generated POST /pods/[id]/storage
+   */
+  postStorage(id: string, body?: Record<string, unknown>) {
+    return this.post<Record<string, unknown>>(`/pods/${encodeURIComponent(id)}/storage`, body);
   }
 
   /**
@@ -410,6 +438,20 @@ export class PodsResource extends ResourceClient {
   }
 
   /**
+   * @generated GET /pods/onboarding
+   */
+  onboarding(query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/pods/onboarding`, query);
+  }
+
+  /**
+   * @generated POST /pods/onboarding
+   */
+  postOnboarding(body?: Record<string, unknown>) {
+    return this.post<Record<string, unknown>>(`/pods/onboarding`, body);
+  }
+
+  /**
    * @generated GET /pods/packages
    */
   packages(query?: QueryParams) {
@@ -421,6 +463,13 @@ export class PodsResource extends ResourceClient {
    */
   postPackages(body?: Record<string, unknown>) {
     return this.post<Record<string, unknown>>(`/pods/packages`, body);
+  }
+
+  /**
+   * @generated GET /pods/prices
+   */
+  prices(query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/pods/prices`, query);
   }
 
   /**
@@ -570,63 +619,6 @@ export class PodsResource extends ResourceClient {
     return this.post<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/gateway-tokens`, body);
   }
 
-
-  /**
-   * @generated GET /pods/projects/[id]/storage-targets
-   */
-  projectsStorageTargets(id: string, query?: QueryParams) {
-    return this.get<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets`, query);
-  }
-
-  /**
-   * @generated POST /pods/projects/[id]/storage-targets
-   */
-  postProjectsStorageTargets(id: string, body?: Record<string, unknown>) {
-    return this.post<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets`, body);
-  }
-
-  /**
-   * @generated DELETE /pods/projects/[id]/storage-targets
-   */
-  deleteProjectsStorageTargets(id: string, query?: QueryParams, body?: Record<string, unknown>) {
-    return this.del<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets`, query, body);
-  }
-
-  /**
-   * @generated GET /pods/projects/[id]/storage-targets/objects
-   */
-  projectsStorageTargetObjects(id: string, query?: QueryParams) {
-    return this.get<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets/objects`, query);
-  }
-
-  /**
-   * @generated DELETE /pods/projects/[id]/storage-targets/objects
-   */
-  deleteProjectsStorageTargetObjects(id: string, query?: QueryParams, body?: Record<string, unknown>) {
-    return this.del<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets/objects`, query, body);
-  }
-
-  /**
-   * @generated GET /pods/[id]/storage
-   */
-  storage(id: string, query?: QueryParams) {
-    return this.get<Record<string, unknown>>(`/pods/${encodeURIComponent(id)}/storage`, query);
-  }
-
-  /**
-   * @generated POST /pods/[id]/storage
-   */
-  postStorage(id: string, body?: Record<string, unknown>) {
-    return this.post<Record<string, unknown>>(`/pods/${encodeURIComponent(id)}/storage`, body);
-  }
-
-  /**
-   * @generated DELETE /pods/[id]/storage
-   */
-  deleteStorage(id: string, query?: QueryParams, body?: Record<string, unknown>) {
-    return this.del<Record<string, unknown>>(`/pods/${encodeURIComponent(id)}/storage`, query, body);
-  }
-
   /**
    * @generated GET /pods/projects/[id]/git
    */
@@ -747,6 +739,20 @@ export class PodsResource extends ResourceClient {
   }
 
   /**
+   * @generated GET /pods/projects/[id]/relays
+   */
+  projectsRelays(id: string, query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/relays`, query);
+  }
+
+  /**
+   * @generated POST /pods/projects/[id]/relays
+   */
+  postProjectsRelays(id: string, body?: Record<string, unknown>) {
+    return this.post<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/relays`, body);
+  }
+
+  /**
    * @generated DELETE /pods/projects/[id]/runtime-groups
    */
   deleteProjectsRuntimeGroups(id: string, query?: QueryParams, body?: Record<string, unknown>) {
@@ -786,6 +792,41 @@ export class PodsResource extends ResourceClient {
    */
   postProjectsStorageBackends(id: string, body?: Record<string, unknown>) {
     return this.post<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-backends`, body);
+  }
+
+  /**
+   * @generated DELETE /pods/projects/[id]/storage-targets
+   */
+  deleteProjectsStorageTargets(id: string, query?: QueryParams, body?: Record<string, unknown>) {
+    return this.del<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets`, query, body);
+  }
+
+  /**
+   * @generated GET /pods/projects/[id]/storage-targets
+   */
+  projectsStorageTargets(id: string, query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets`, query);
+  }
+
+  /**
+   * @generated POST /pods/projects/[id]/storage-targets
+   */
+  postProjectsStorageTargets(id: string, body?: Record<string, unknown>) {
+    return this.post<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets`, body);
+  }
+
+  /**
+   * @generated DELETE /pods/projects/[id]/storage-targets/objects
+   */
+  deleteProjectsStorageTargetsObjects(id: string, query?: QueryParams, body?: Record<string, unknown>) {
+    return this.del<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets/objects`, query, body);
+  }
+
+  /**
+   * @generated GET /pods/projects/[id]/storage-targets/objects
+   */
+  projectsStorageTargetsObjects(id: string, query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/pods/projects/${encodeURIComponent(id)}/storage-targets/objects`, query);
   }
 
   /**
@@ -870,6 +911,13 @@ export class PodsResource extends ResourceClient {
    */
   registry(query?: QueryParams) {
     return this.get<Record<string, unknown>>(`/pods/registry`, query);
+  }
+
+  /**
+   * @generated GET /pods/requirements
+   */
+  requirements(query?: QueryParams) {
+    return this.get<Record<string, unknown>>(`/pods/requirements`, query);
   }
 
   /**

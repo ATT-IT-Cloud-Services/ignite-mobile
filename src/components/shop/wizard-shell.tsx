@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { mobileTranslate } from "@/i18n/mobile-translate";
 import type { ReactNode } from "react";
 
 type ShopWizardShellProps = {
