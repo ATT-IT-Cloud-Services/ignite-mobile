@@ -178,19 +178,7 @@ export class PublicApiResource extends ResourceClient {
     return this.post<Record<string, unknown>>(`/public/setup/complete`, body);
   }
 
-  /**
-   * @generated GET /public/setup/legal
-   */
-  setupLegal(query?: QueryParams) {
-    return this.get<Record<string, unknown>>(`/public/setup/legal`, query);
-  }
 
-  /**
-   * @generated PUT /public/setup/legal
-   */
-  replaceSetupLegal(body?: Record<string, unknown>) {
-    return this.put<Record<string, unknown>>(`/public/setup/legal`, body);
-  }
 
   /**
    * @generated GET /public/support-hours
